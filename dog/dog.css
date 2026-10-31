@@ -1,8 +1,8 @@
-/* 멍멍 여행가계부 — 기본 styles.css 위에 덮어쓰는 강아지(시바견) 테마.
-   Layout: 같은 화면 구성. 하늘색 바탕 + 시바 주황 헤더 + 둥근 카드, 숫자는 둥근 Jua 서체로 도장처럼. */
+/* 멍멍 여행가계부 — 기본 styles.css 위에 덮어쓰는 강아지(골든 리트리버) 테마.
+   Layout: 같은 화면 구성. 하늘색 바탕 + 골든 털색 헤더 + 둥근 카드, 숫자는 둥근 Jua 서체. */
 :root {
   --bg: #e9f4fb; --surface: #ffffff; --ink: #3b2c24; --muted: #7a6a60; --line: #d8e5ee;
-  --accent: #e8913a; --accent-soft: #fdebd6; --on-accent: #3b2c24;
+  --accent: #e3a548; --accent-soft: #fcefd6; --on-accent: #3b2c24;
   --owe: #d4574f; --get: #2a8f63; --warn-bg: #fff1c9; --warn-ink: #7a5600;
   --tongue: #f28ba8; --cream: #fff7ee;
   --font: "Gowun Dodum", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
@@ -16,7 +16,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #18202c; --surface: #222c3a; --ink: #f6ede6; --muted: #b5a89d; --line: #33404f;
-    --accent: #f2a65a; --accent-soft: #3d3124; --on-accent: #2a1c12;
+    --accent: #f0bd68; --accent-soft: #3d3324; --on-accent: #2a1c12;
     --owe: #ff8f86; --get: #6fd3a3; --warn-bg: #3b3115; --warn-ink: #f2d27a; --cream: #2b2620; color-scheme: dark; }
 }
 
@@ -34,12 +34,14 @@ body {
   box-shadow: 0 6px 0 color-mix(in srgb, var(--accent) 55%, var(--ink) 12%);
 }
 .top-row { gap: 12px; }
-.mascot { width: 52px; height: 52px; flex: none; margin: -2px 0 -4px; }
+.mascot { width: 54px; height: 54px; flex: none; margin: -2px 0 -4px; padding: 3px; border-radius: 50%; background: #fff6e6; box-shadow: 0 2px 0 rgba(59, 44, 36, .18); }
 .mascot svg { width: 100%; height: 100%; display: block; }
 @media (prefers-reduced-motion: no-preference) {
-  .mascot .ear-l { transform-origin: 18px 20px; animation: wiggle 3.2s ease-in-out infinite; }
-  .mascot .ear-r { transform-origin: 46px 20px; animation: wiggle 3.2s ease-in-out .4s infinite reverse; }
-  @keyframes wiggle { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(-9deg); } 92% { transform: rotate(5deg); } }
+  /* 늘어진 귀가 가끔 살랑 */
+  .mascot .ear-l { transform-origin: 18px 16px; animation: flop-l 3.6s ease-in-out infinite; }
+  .mascot .ear-r { transform-origin: 46px 16px; animation: flop-r 3.6s ease-in-out .25s infinite; }
+  @keyframes flop-l { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(9deg); } 92% { transform: rotate(-3deg); } }
+  @keyframes flop-r { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(-9deg); } 92% { transform: rotate(3deg); } }
 }
 .top select { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .01em; }
 .top select option { color: #3b2c24; }
