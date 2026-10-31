@@ -139,3 +139,29 @@ td.num { font-family: var(--display); }
 @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
 /* 입력 칸이 열려 있으면 강아지를 눌러도 아래 버튼이 눌리도록 */
 body:has(#entry-form:not([hidden])) .c-dog { pointer-events: none; }
+
+/* 도우미 말풍선: 오피스 길잡이처럼 연노랑 풍선 + 파란 동그라미 선택지 (테마와 무관하게 같은 모습) */
+.balloon {
+  position: fixed; z-index: 9; bottom: calc(74px + 92px + env(safe-area-inset-bottom, 0px));
+  background: #ffffe1; color: #1e1e1e; border: 1px solid #5b5b46; border-radius: 12px;
+  box-shadow: 2px 4px 0 rgba(0, 0, 0, .14); padding: 12px 12px 10px; font-family: var(--font);
+  pointer-events: auto; animation: pop .2s ease-out;
+}
+.balloon::after {
+  content: ""; position: absolute; left: var(--tail, 50%); bottom: -11px; width: 18px; height: 18px; margin-left: -9px;
+  background: #ffffe1; border-right: 1px solid #5b5b46; border-bottom: 1px solid #5b5b46; transform: rotate(45deg) skew(8deg, 8deg);
+}
+.b-title { margin: 0 0 8px; font: 17px var(--display); }
+.b-text { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+.b-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.b-options button {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: none; border: 0;
+  padding: 7px 4px; border-radius: 6px; font: 15px var(--font); color: #1e1e1e; cursor: pointer; min-height: 40px;
+}
+.b-options button::before {
+  content: ""; flex: none; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #cfe0ff 0 20%, #3d74d6 60%, #1f4fa8 100%); box-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.b-options button:hover, .b-options button:focus-visible { background: rgba(61, 116, 214, .12); outline: none; }
+.b-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+.b-close { font: 14px var(--font); color: #1e1e1e; background: #f2f2e0; border: 1px solid #8a8a70; border-radius: 6px; padding: 5px 14px; cursor: pointer; }

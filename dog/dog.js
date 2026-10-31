@@ -3,7 +3,9 @@
  * 옆모습 강아지를 몸통·머리·귀·꼬리·다리 4개 관절로 나눠 두고, 매 프레임 관절 각도를 계산한다.
  * 자세 값(sit, lie, sniff…)은 목표값으로 부드럽게 다가가고, 귀·꼬리는 스프링처럼 따라 움직인다.
  * 행동: 숨쉬기·눈 깜빡임·꼬리 흔들기는 항상, 그 외에 서 있기/앉기/엎드리기/걷기/냄새 맡기/고개 갸웃/
- *       뒷발로 귀 긁기를 스스로 고른다. 기록 저장 → 폴짝폴짝 + 헥헥, 강아지 누르기 → 짖기 또는 도움말.
+ *       뒷발로 귀 긁기를 스스로 고른다. 기록 저장 → 폴짝폴짝 + 헥헥.
+ * 도우미 말풍선(오피스 길잡이 방식): 강아지를 누르면 "무엇을 도와드릴까요?"와 지금 화면에 맞는 선택지가 뜨고,
+ *       고르면 실제 기능(기록·정산·초대·환율 채우기)을 실행한다. "강아지 숨기기"로 숨기고 위쪽 얼굴을 눌러 다시 부른다.
  * 입력 칸이 열리면 저장 버튼을 가리지 않게 왼쪽으로 비켜 앉는다. "움직임 줄이기" 설정이면 가만히 앉아만 있다.
  */
 (() => {
@@ -25,7 +27,7 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const DOG_W = 120;          // 화면에 그려지는 폭(px)
   const SCALE = DOG_W / 160;  // viewBox 160 기준
-  const GROUND = 108, HIP = [48, 74];
+  const GROUND = 108, HIP = [48, 88], LEG_LEN = 18;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -104,6 +106,7 @@
 
   /* ---------- 반응 ---------- */
   function celebrate(text) {
+    if (!balloon.hidden) closeBalloon();
     goal = null;
     set(POSES.happy);
     begin("happy", 2.6);
@@ -114,16 +117,73 @@
   document.addEventListener("ledger:saved", (ev) => {
     celebrate(ev.detail && ev.detail.kind === "transfer" ? pick(["정산 송금 확인!", "멍! 주고받기 끝"]) : pick(["멍! 기록했어요", "왈왈, 저장 완료!", "잘 적었어요!"]));
   });
-  root.querySelector(".c-dog").addEventListener("click", () => {
-    if (Math.random() < 0.5) {
-      set(POSES.stand); target.pant = 1; target.tilt = 10; begin("bark", 1.2);
-      say(pick(["멍!", "왈왈!", "멍멍!"]), 1200);
-    } else {
-      set(POSES.sit); target.tilt = -12; begin("tilt", 3);
-      say(tip(), 3600);
+  /* ---------- 도우미 말풍선 (오피스 길잡이 방식) ---------- */
+  const balloon = root.querySelector(".balloon");
+  const bTitle = balloon.querySelector(".b-title"), bText = balloon.querySelector(".b-text"), bList = balloon.querySelector(".b-options");
+  const HIDE_KEY = "daeng-dog-hidden";
+  const visibleEl = (sel) => { const el = document.querySelector(sel); return el && !el.hidden && el.offsetParent !== null; };
+  const tab = (name) => { const b = document.querySelector(`.tabs [data-view="${name}"]`); if (b) b.click(); };
+  function answer(text) {
+    bTitle.textContent = "알려 드릴게요";
+    bText.textContent = text; bText.hidden = false;
+    renderOptions([{ label: "다른 걸 물어볼래요", run: () => openBalloon() }]);
+  }
+  function menu() {
+    const opts = [];
+    if (visibleEl("#pending-banner")) opts.push({ label: "빈 환율 채우기", run: () => { const b = document.querySelector("#fill-rates"); b && b.click(); say("환율 물어올게요!", 1800); } });
+    opts.push({ label: "지출 기록하기", run: () => { tab("log"); setTimeout(() => { const b = document.querySelector("#open-form"); if (b && !b.hidden) b.click(); }, 50); } });
+    opts.push({ label: "누가 누구에게 보낼지 보기", run: () => tab("settle") });
+    opts.push({ label: "친구 초대해서 같이 쓰기", run: () => { tab("trip"); setTimeout(() => { const c = document.querySelector("#share-card"); c && !c.hidden && c.scrollIntoView({ behavior: "smooth", block: "center" }); }, 80); } });
+    opts.push({ label: "환율은 어떻게 계산해요?", keep: true, run: () => answer("외화 지출은 결제한 날의 기준환율을 자동으로 가져와요. 카드에서 원화로 결제됐다면 '실제 결제된 금액'을 넣어 주세요. 그 금액이 그대로 쓰여요.") });
+    opts.push({ label: "둘이 나눠 냈을 땐요?", keep: true, run: () => answer("기록할 때 '여러 명이 나눠 냈어요'를 누르고 각자 낸 금액을 적으면 돼요. 일부만 나눌 땐 '똑같이'에서 빠질 사람 체크를 꺼요.") });
+    opts.push({ label: "강아지 숨기기", run: () => hideDog() });
+    return opts;
+  }
+  function renderOptions(opts) {
+    bList.innerHTML = "";
+    for (const o of opts) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.textContent = o.label;
+      btn.addEventListener("click", () => { if (!o.keep) closeBalloon(); o.run(); });
+      li.appendChild(btn); bList.appendChild(li);
     }
-  });
-  if (mascot) mascot.addEventListener("click", () => headSay(pick(["멍!", "왈!", "아래 강아지를 눌러 보세요", "산책 가요?"])));
+  }
+  function placeBalloon() {
+    const w = Math.min(280, innerWidth - 24);
+    const left = clamp(x + DOG_W / 2 - w / 2, 12, innerWidth - w - 12);
+    balloon.style.width = w + "px";
+    balloon.style.left = left + "px";
+    balloon.style.setProperty("--tail", clamp(x + DOG_W / 2 - left, 24, w - 24) + "px");
+  }
+  function openBalloon() {
+    bubble.hidden = true;
+    bTitle.textContent = pick(["무엇을 도와드릴까요?", "멍! 뭘 도와드릴까요?"]);
+    bText.hidden = true;
+    renderOptions(menu());
+    goal = null; set(POSES.sit); target.tilt = -10; target.wagAmp = 18; target.wagSpeed = 10; begin("help", 1e9);
+    placeBalloon();
+    balloon.hidden = false;
+  }
+  function closeBalloon() {
+    balloon.hidden = true;
+    if (state === "help") { set(POSES.sit); begin("sit", rnd(2, 4)); }
+  }
+  balloon.querySelector(".b-close").addEventListener("click", closeBalloon);
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !balloon.hidden) closeBalloon(); });
+  function hideDog() {
+    root.hidden = true;
+    try { localStorage.setItem(HIDE_KEY, "1"); } catch (e) { /* 이번만 숨김 */ }
+    headSay("쉬러 갈게요. 저를 누르면 다시 와요!");
+  }
+  function showDog() {
+    root.hidden = false;
+    try { localStorage.removeItem(HIDE_KEY); } catch (e) { /* 없음 */ }
+    x = -DOG_W; facing = 1;
+    walkTo(rnd(20, Math.min(160, innerWidth * 0.4)), () => { set(POSES.sit); begin("sit", 3); say("다시 왔어요!", 2000); });
+  }
+  root.querySelector(".c-dog").addEventListener("click", () => (balloon.hidden ? openBalloon() : closeBalloon()));
+  if (mascot) mascot.addEventListener("click", () => (root.hidden ? showDog() : headSay(pick(["멍!", "왈!", "아래 강아지를 누르면 도와드려요", "산책 가요?"]))));
 
   /* ---------- 관절 계산 ---------- */
   const rotAround = (px, py, deg, cx, cy) => {
@@ -133,32 +193,32 @@
   const tf = (el, v) => el.setAttribute("transform", v);
 
   function render() {
-    const sitDeg = -30 * pose.sit;                      // 몸통이 엉덩이를 축으로 들림
+    const sitDeg = -24 * pose.sit;                      // 몸통이 엉덩이를 축으로 들림
     const breathe = Math.sin(t * (pose.pant > .5 ? 9 : 2.4)) * (pose.pant > .5 ? .035 : .018);
     const stepBob = -Math.abs(Math.sin(phase)) * 1.8 * pose.walk;
-    const drop = 14 * pose.sit + 17 * pose.lie + stepBob;
+    const drop = 7 * pose.sit + 11 * pose.lie + stepBob;
     tf(P.torso, `translate(0 ${drop.toFixed(2)}) rotate(${sitDeg.toFixed(2)} ${HIP[0]} ${HIP[1]})`);
-    tf(P.breath, `translate(70 66) scale(1 ${(1 + breathe).toFixed(4)}) translate(-70 -66)`);
+    tf(P.breath, `translate(66 85) scale(1 ${(1 + breathe).toFixed(4)}) translate(-66 -85)`);
 
     // 꼬리
     const wag = Math.sin(t * pose.wagSpeed) * pose.wagAmp;
-    tf(P.tail, `rotate(${(pose.tailBase + wag).toFixed(2)} 44 61)`);
+    tf(P.tail, `rotate(${(pose.tailBase + wag).toFixed(2)} 46 76)`);
 
     // 다리: 걷기 진자 + 앉기/엎드리기 접힘
-    const swing = 24 * pose.walk;
+    const swing = 28 * pose.walk;
     const legs = [
-      [P.fn, 88, 72, phase, true], [P.ff, 94, 70, phase + Math.PI, true], [P.bn, 50, 76, phase + Math.PI, false], [P.bf, 56, 74, phase, false],
+      [P.fn, 80, 92, phase, true], [P.ff, 86, 90, phase + Math.PI, true], [P.bn, 50, 94, phase + Math.PI, false], [P.bf, 56, 92, phase, false],
     ];
     for (const [el, lx, ly, lp, front] of legs) {
       const ph = Math.sin(lp);
       // 다리가 앞으로 나가는 동안(cos>0) 발을 들어 올려 짧아 보이게 → 걷는 느낌
-      const lift = Math.max(0, Math.cos(lp)) * 0.16 * pose.walk;
+      const lift = Math.max(0, Math.cos(lp)) * 0.22 * pose.walk;
       let [wx, wy] = rotAround(lx, ly, sitDeg, HIP[0], HIP[1]);
       wy += drop;
       let ang = ph * swing, sy = 1;
       if (front) {
         ang += -84 * pose.lie;
-        const reach = clamp((GROUND - wy) / 34, .55, 1.6);
+        const reach = clamp((GROUND - wy) / LEG_LEN, .55, 1.8);
         sy = (reach - lift) * (1 - pose.lie) + .95 * pose.lie;
         if (el === P.fn) ang += -12 * pose.tuck;
       } else {
@@ -171,23 +231,23 @@
     }
 
     // 머리: 목을 기준으로. 앉으면 고개를 세우고, 냄새 맡을 땐 숙이고, 귀 긁을 땐 기울인다.
-    let [nx, ny] = rotAround(96, 58, sitDeg, HIP[0], HIP[1]);
+    let [nx, ny] = rotAround(84, 76, sitDeg, HIP[0], HIP[1]);
     ny += drop + Math.sin(phase * 2) * .8 * pose.walk;
     const sniffBob = pose.sniff * Math.sin(sniffPhase) * 3;
-    const head = sitDeg * 0.25 + 30 * pose.sniff + sniffBob + pose.tilt + 10 * pose.lie
+    const head = sitDeg * 0.3 + 22 * pose.sniff + sniffBob + pose.tilt + 10 * pose.lie
       + 14 * pose.scratch + Math.sin(t * 0.9) * 2 * (1 - pose.walk);
     tf(P.head, `translate(${nx.toFixed(2)} ${(ny + 4 * pose.sniff).toFixed(2)}) rotate(${head.toFixed(2)})`);
 
     // 귀: 머리 움직임을 늦게 따라가는 스프링
-    tf(P.ear, `translate(10 -24) rotate(${ear.toFixed(2)})`);
+    tf(P.ear, `translate(0 -40) rotate(${ear.toFixed(2)})`);
     lastHead = head;
 
     // 눈 깜빡임, 혀
     const lid = blinkT > 0 ? Math.sin(Math.min(1, blinkT / .14) * Math.PI) : 0;
-    tf(P.lid, `translate(21 -19) scale(1 ${lid.toFixed(3)}) translate(-21 19)`);
+    tf(P.lid, `translate(24 -27) scale(1 ${lid.toFixed(3)}) translate(-24 27)`);
     P.tongue.setAttribute("opacity", pose.pant.toFixed(2));
     tf(P.tongue, `translate(0 ${(Math.max(0, Math.sin(t * 9)) * 1.5 * pose.pant).toFixed(2)})`);
-    P.shadow.setAttribute("rx", (40 + 6 * pose.lie - Math.min(14, -jumpY * .25)).toFixed(1));
+    P.shadow.setAttribute("rx", (34 + 6 * pose.lie - Math.min(12, -jumpY * .25)).toFixed(1));
 
     mover.style.transform = `translate3d(${x.toFixed(1)}px, ${jumpY.toFixed(1)}px, 0)`;
     flip.style.transform = facing < 0 ? "scaleX(-1)" : "none";
@@ -234,16 +294,17 @@
     if (t > blinkAt) { blinkT = .14; blinkAt = t + (Math.random() < .2 ? .25 : rnd(2.2, 5.5)); }
 
     // 다음 행동
+    if (!balloon.hidden) placeBalloon();
     if (state !== "walk" && t > stateEnd) {
       if (state === "happy" || state === "bark") { set(POSES.sit); target.pant = 0.6; begin("sit", 3); }
       else chooseNext();
     }
     // 가끔 도움말 (앉아 있을 때, 1분에 한 번 정도)
-    if (state === "sit" && t - lastTip > 55 && Math.random() < dt / 20) { lastTip = t; say(tip(), 3800); }
+    if (state === "sit" && balloon.hidden && t - lastTip > 55 && Math.random() < dt / 20) { lastTip = t; say(tip(), 3800); }
 
     // 입력 칸이 열려 저장 버튼 쪽에 있으면 비켜 감
     const [lo, hi] = bounds();
-    if (state !== "walk" && state !== "happy" && x > hi + 4) walkTo(hi - rnd(0, 30), () => { set(POSES.sit); begin("sit", rnd(4, 8)); });
+    if (state !== "walk" && state !== "happy" && state !== "help" && x > hi + 4) walkTo(hi - rnd(0, 30), () => { set(POSES.sit); begin("sit", rnd(4, 8)); });
   }
 
   let last = performance.now();
@@ -260,6 +321,7 @@
       pose(name, extra = {}) { goal = null; set({ ...POSES[name === "tilt" || name === "scratch" ? "sit" : name], ...extra }); begin(name, 1e9); },
       walk(nx) { walkTo(nx, () => { set(POSES.stand); begin("stand", 1e9); }); },
       celebrate() { celebrate("멍! 기록했어요"); },
+      help() { openBalloon(); },
       state: () => ({ state, x: Math.round(x), facing }),
     };
   }
@@ -270,6 +332,9 @@
     render();
     return;
   }
+  let hiddenBefore = false;
+  try { hiddenBefore = localStorage.getItem(HIDE_KEY) === "1"; } catch (e) { /* 없음 */ }
+  if (hiddenBefore) { root.hidden = true; requestAnimationFrame(frame); return; }
   // 처음에는 화면 밖 왼쪽에서 걸어 들어온다.
   x = -DOG_W; facing = 1;
   walkTo(rnd(20, Math.min(160, innerWidth * 0.4)), () => { set(POSES.sit); begin("sit", rnd(3, 6)); say(pick(["멍! 오늘도 같이 적어요", "왔어요!", "꼬리 흔들흔들~"]), 2200); });

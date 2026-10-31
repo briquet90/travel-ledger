@@ -18,47 +18,30 @@
 <body>
   <header class="top">
     <div class="top-row">
-      <div class="mascot" aria-hidden="true"><svg viewBox="17 10 86 84" aria-hidden="true">
+      <div class="mascot" aria-hidden="true"><svg viewBox="14 12 92 86" aria-hidden="true">
         <defs>
-          <radialGradient id="mfur" cx=".45" cy=".35" r=".75"><stop offset="0" stop-color="#f7dab2"/><stop offset=".6" stop-color="#ecbf88"/><stop offset="1" stop-color="#d79e68"/></radialGradient>
-          <radialGradient id="mbody" cx=".5" cy=".25" r=".85"><stop offset="0" stop-color="#f4d3a5"/><stop offset="1" stop-color="#dfa86f"/></radialGradient>
-          <radialGradient id="mear" cx=".4" cy=".2" r=".9"><stop offset="0" stop-color="#e6ad73"/><stop offset="1" stop-color="#c2834c"/></radialGradient>
-          <radialGradient id="mpetal" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffe680"/><stop offset="1" stop-color="#f2bf2a"/></radialGradient>
-          <filter id="mwc" x="-5%" y="-5%" width="110%" height="110%">
-            <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="7" result="n"/>
-            <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
-          </filter>
+          <radialGradient id="mfur" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#ffeccc"/><stop offset=".45" stop-color="#f2c690"/><stop offset="1" stop-color="#cf9055"/></radialGradient>
+          <radialGradient id="mbody" cx=".45" cy=".25" r=".85"><stop offset="0" stop-color="#fbe2bb"/><stop offset="1" stop-color="#d89c62"/></radialGradient>
+          <radialGradient id="mear" cx=".35" cy=".2" r=".95"><stop offset="0" stop-color="#e9b276"/><stop offset="1" stop-color="#b97a43"/></radialGradient>
+          <radialGradient id="meye" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#5a3a26"/><stop offset="1" stop-color="#140d0a"/></radialGradient>
+          <radialGradient id="mnose" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#6b5148"/><stop offset="1" stop-color="#1f1612"/></radialGradient>
         </defs>
-        <g class="pup" filter="url(#mwc)">
-          <ellipse cx="60" cy="144" rx="34" ry="4.5" fill="#3b2c24" opacity=".13"/>
-          <ellipse cx="38" cy="137" rx="10" ry="6.5" fill="#e2ab73" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <ellipse cx="82" cy="137" rx="10" ry="6.5" fill="#e2ab73" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <path d="M34 92C30 112 32 132 40 138H80C88 132 90 112 86 92 80 80 40 80 34 92Z" fill="url(#mbody)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <path d="M48 90C46 104 52 116 60 121 68 116 74 104 72 90Z" fill="#f9e5c8" opacity=".85"/>
-          <path d="M52 100l2 4M60 104v5M67 100l-2 4" stroke="#c99566" stroke-width="1.1" stroke-linecap="round" opacity=".6"/>
-          <g class="leg-l">
-            <path d="M44 104C42 118 42 132 44 140 46 145 56 145 57 140 58 130 57 116 56 104Z" fill="#ecbf88" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-            <path d="M48 140v3M52 140v3" stroke="#9a6a43" stroke-opacity=".5" stroke-width="1" stroke-linecap="round"/>
-          </g>
-          <g class="leg-r">
-            <path d="M64 100C66 111 70 119 75 122L85 120C81 111 77 103 75 97Z" fill="#ecbf88" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-            <ellipse cx="80" cy="127" rx="11.5" ry="10.5" fill="#efc795" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-            <ellipse cx="80" cy="130.5" rx="5.6" ry="4.6" fill="#4a3a33"/>
-            <circle cx="73.4" cy="124.6" r="2" fill="#4a3a33"/><circle cx="77.4" cy="121.4" r="2" fill="#4a3a33"/>
-            <circle cx="82.6" cy="121.4" r="2" fill="#4a3a33"/><circle cx="86.6" cy="124.6" r="2" fill="#4a3a33"/>
-          </g>
-          <path d="M60 18C80 18 92 32 92 50 92 66 84 80 60 82 36 80 28 66 28 50 28 32 40 18 60 18Z" fill="url(#mfur)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <path class="ear-l" d="M31 33C20 39 17 60 23 72 27 79 36 77 38 67 40 55 40 42 37 34Z" fill="url(#mear)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <path class="ear-r" d="M89 33C100 39 103 60 97 72 93 79 84 77 82 67 80 55 80 42 83 34Z" fill="url(#mear)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.4" stroke-linejoin="round"/>
-          <path d="M53 21C55 14 59 13 61 18 63 13 68 15 66 22" fill="none" stroke="#c99566" stroke-width="1.3" stroke-linecap="round"/>
-          <ellipse cx="60" cy="64" rx="15.5" ry="11.5" fill="#fbe6c8" opacity=".92"/>
-          <ellipse cx="38.5" cy="62" rx="5" ry="3" fill="#f0a49a" opacity=".45"/>
-          <ellipse cx="81.5" cy="62" rx="5" ry="3" fill="#f0a49a" opacity=".45"/>
-          <ellipse cx="46" cy="50" rx="4.6" ry="5.1" fill="#231a16"/><ellipse cx="74" cy="50" rx="4.6" ry="5.1" fill="#231a16"/>
-          <circle cx="47.6" cy="48.2" r="1.6" fill="#fff"/><circle cx="75.6" cy="48.2" r="1.6" fill="#fff"/>
-          <path d="M53.5 58C53.5 54.4 66.5 54.4 66.5 58 66.5 61.6 62.6 63.6 60 63.6 57.4 63.6 53.5 61.6 53.5 58Z" fill="#2b201c"/>
-          <ellipse cx="57.8" cy="56.5" rx="2.2" ry="1" fill="#fff" opacity=".45"/>
-          <path d="M60 63.6v3.4M60 67c-1.8 3.2-6.2 3.4-8.4 1.2M60 67c1.8 3.2 6.2 3.4 8.4 1.2" fill="none" stroke="#3b2c24" stroke-width="1.5" stroke-linecap="round"/><path d="M57.2 69.4c.4 4.6 5.2 4.6 5.6 0z" fill="#f28ba8"/>
+        <g class="pup">
+          <path d="M36 96C34 84 44 78 60 78S86 84 84 96Z" fill="url(#mbody)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.6" stroke-linejoin="round"/>
+          <path class="ear-l" d="M30 30C16 34 12 56 18 70 22 80 33 79 36 68 39 56 39 41 36 31Z" fill="url(#mear)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.6" stroke-linejoin="round"/>
+          <path class="ear-r" d="M90 30C104 34 108 56 102 70 98 80 87 79 84 68 81 56 81 41 84 31Z" fill="url(#mear)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.6" stroke-linejoin="round"/>
+          <ellipse cx="60" cy="50" rx="34" ry="31" fill="url(#mfur)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.6" stroke-linejoin="round"/>
+          <ellipse cx="50" cy="31" rx="12" ry="6" fill="#fff" opacity=".35"/>
+          <path d="M54 21C56 15 60 14 62 19 64 14 69 16 67 23" fill="none" stroke="#c99566" stroke-width="1.4" stroke-linecap="round"/>
+          <ellipse cx="60" cy="64" rx="13" ry="9.5" fill="#fff1dc"/>
+          <ellipse cx="36" cy="60" rx="6" ry="3.6" fill="#f3a39a" opacity=".5"/>
+          <ellipse cx="84" cy="60" rx="6" ry="3.6" fill="#f3a39a" opacity=".5"/>
+          <ellipse cx="45" cy="49" rx="6.2" ry="7" fill="url(#meye)"/><ellipse cx="75" cy="49" rx="6.2" ry="7" fill="url(#meye)"/>
+          <circle cx="47.4" cy="46" r="2.3" fill="#fff"/><circle cx="77.4" cy="46" r="2.3" fill="#fff"/>
+          <circle cx="43.4" cy="52.4" r="1" fill="#fff" opacity=".8"/><circle cx="73.4" cy="52.4" r="1" fill="#fff" opacity=".8"/>
+          <path d="M54.5 59.6C54.5 56.4 65.5 56.4 65.5 59.6 65.5 62.6 62.2 64.2 60 64.2 57.8 64.2 54.5 62.6 54.5 59.6Z" fill="url(#mnose)"/>
+          <ellipse cx="58.2" cy="58.1" rx="2" ry=".9" fill="#fff" opacity=".55"/>
+          <path d="M60 64.2v2.4M60 66.6c-1.6 2.6-5.2 2.8-7 .9M60 66.6c1.6 2.6 5.2 2.8 7 .9" fill="none" stroke="#3b2c24" stroke-width="1.5" stroke-linecap="round"/><path d="M57.6 68.6c.4 4 4.4 4 4.8 0z" fill="#f28ba8"/>
         </g>
       </svg></div>
       <label class="sr" for="trip-select">여행 선택</label>
@@ -225,48 +208,57 @@
     </section>
   </main>
 
-  <div class="companion" aria-hidden="true">
-    <div class="c-move">
+  <div class="companion">
+    <div class="c-move" aria-hidden="true">
       <p class="bubble" hidden></p>
       <div class="c-flip">
       <svg class="c-dog" viewBox="0 0 160 116">
         <defs>
-          <radialGradient id="cfur" cx=".45" cy=".3" r=".8"><stop offset="0" stop-color="#f6d6ab"/><stop offset=".65" stop-color="#e8b67d"/><stop offset="1" stop-color="#d49b63"/></radialGradient>
-          <radialGradient id="cear" cx=".4" cy=".2" r=".9"><stop offset="0" stop-color="#e2a86d"/><stop offset="1" stop-color="#bd7f48"/></radialGradient>
+          <radialGradient id="cfur" cx=".38" cy=".28" r=".85"><stop offset="0" stop-color="#ffeccc"/><stop offset=".5" stop-color="#f0c48c"/><stop offset="1" stop-color="#cc8d52"/></radialGradient>
+          <radialGradient id="cear" cx=".35" cy=".2" r=".95"><stop offset="0" stop-color="#e9b276"/><stop offset="1" stop-color="#b97a43"/></radialGradient>
+          <radialGradient id="ceye" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#5a3a26"/><stop offset="1" stop-color="#140d0a"/></radialGradient>
+          <radialGradient id="cnose" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#6b5148"/><stop offset="1" stop-color="#1f1612"/></radialGradient>
         </defs>
-        <ellipse id="c-shadow" cx="76" cy="109" rx="40" ry="4" fill="#3b2c24" opacity=".14"/>
-        <g id="c-leg-bf"><path d="M-6.5 0C-7 12-6 23-5.5 28.5C-6 34-2 37 4 37S12 35 11 31.2L6.2 29.2C6.6 21 7.2 10 6.5 0Z" fill="#c99456" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/></g>
-        <g id="c-leg-ff"><path d="M-6.5 0C-7 12-6 23-5.5 28.5C-6 34-2 37 4 37S12 35 11 31.2L6.2 29.2C6.6 21 7.2 10 6.5 0Z" fill="#c99456" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/></g>
+        <ellipse id="c-shadow" cx="68" cy="109" rx="34" ry="4" fill="#3b2c24" opacity=".16"/>
+        <g id="c-leg-bf"><path d="M-6.5 0C-7 6-6.5 10-6.5 12.5C-6.5 17-3 19.5 3.5 19.5S12.5 18 11.5 14.6L7 13C7.2 9 7.4 4 6.8 0Z" fill="#c98d53" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/></g>
+        <g id="c-leg-ff"><path d="M-6.5 0C-7 6-6.5 10-6.5 12.5C-6.5 17-3 19.5 3.5 19.5S12.5 18 11.5 14.6L7 13C7.2 9 7.4 4 6.8 0Z" fill="#c98d53" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/></g>
         <g id="c-torso">
-          <g id="c-tail"><path d="M43 63C33 60 24 52 19 41 17 37 21 35 24 38 30 45 36 51 46 56Z" fill="url(#cear)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-            <path d="M24 44c-3 1-6 0-7-2M30 51c-3 2-6 2-8 0" stroke="#c99456" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>
+          <g id="c-tail"><path d="M45 80C36 78 30 72 28 64 27 60 31 58 34 61 37 66 41 70 48 73Z" fill="url(#cear)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M31 66c-2 1-4 1-5 0M35 71c-2 1-4 1-6 0" stroke="#b97a43" stroke-width="1.1" fill="none" stroke-linecap="round"/></g>
           <g id="c-breath">
-            <ellipse cx="70" cy="65" rx="32" ry="19" fill="url(#cfur)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-            <ellipse cx="51" cy="70" rx="16" ry="15" fill="url(#cfur)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-            <path d="M84 75c4 4 10 5 14 2" stroke="#c99566" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".7"/>
-            <ellipse cx="91" cy="70" rx="10" ry="9" fill="#f8e3c4" opacity=".85"/>
+            <ellipse cx="66" cy="85" rx="27" ry="18" fill="url(#cfur)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+            <ellipse cx="50" cy="88" rx="14" ry="13" fill="url(#cfur)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+            <ellipse cx="60" cy="74" rx="12" ry="4" fill="#fff" opacity=".28"/>
+            <ellipse cx="83" cy="89" rx="10" ry="10" fill="#fff1dc" opacity=".9"/>
           </g>
         </g>
-        <g id="c-leg-bn"><path d="M-6.5 0C-7 12-6 23-5.5 28.5C-6 34-2 37 4 37S12 35 11 31.2L6.2 29.2C6.6 21 7.2 10 6.5 0Z" fill="#e6b37a" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/></g>
-        <g id="c-leg-fn"><path d="M-6.5 0C-7 12-6 23-5.5 28.5C-6 34-2 37 4 37S12 35 11 31.2L6.2 29.2C6.6 21 7.2 10 6.5 0Z" fill="#e6b37a" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/></g>
+        <g id="c-leg-bn"><path d="M-6.5 0C-7 6-6.5 10-6.5 12.5C-6.5 17-3 19.5 3.5 19.5S12.5 18 11.5 14.6L7 13C7.2 9 7.4 4 6.8 0Z" fill="#efc28a" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/></g>
+        <g id="c-leg-fn"><path d="M-6.5 0C-7 6-6.5 10-6.5 12.5C-6.5 17-3 19.5 3.5 19.5S12.5 18 11.5 14.6L7 13C7.2 9 7.4 4 6.8 0Z" fill="#efc28a" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/></g>
         <g id="c-head">
-          <ellipse cx="2" cy="-2" rx="11" ry="14" fill="url(#cfur)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-          <circle cx="16" cy="-15" r="15.5" fill="url(#cfur)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-          <path d="M22 -12C30 -15 40 -13 43 -9 45 -5 41 -1 34 -1 28 -1 23 -4 22 -12Z" fill="#f3d2a5" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
-          <ellipse cx="41.5" cy="-11" rx="3.6" ry="3" fill="#2b201c"/>
-          <ellipse cx="40.6" cy="-12" rx="1.3" ry=".7" fill="#fff" opacity=".5"/>
-          <path id="c-mouth" d="M41 -7C38 -3 33 -2 29 -4" fill="none" stroke="#3b2c24" stroke-width="1.3" stroke-linecap="round"/>
-          <path id="c-tongue" d="M32 -4c1 6 7 6 7 0z" fill="#f28ba8" opacity="0"/>
-          <ellipse cx="21" cy="-19" rx="2.7" ry="3.1" fill="#231a16"/>
-          <circle cx="21.9" cy="-20.1" r=".9" fill="#fff"/>
-          <ellipse id="c-lid" cx="21" cy="-19" rx="3.4" ry="3.6" fill="#e9b77e" transform="scale(1 0)"/>
-          <path d="M18 -24c1.5-1.2 4-1.2 5.5.2" stroke="#b9834b" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-          <ellipse cx="25" cy="-10" rx="3.4" ry="2" fill="#f0a49a" opacity=".45"/>
-          <path d="M10 -30c2-4 6-4 7 0 1-3 5-3 5 1" fill="none" stroke="#c99566" stroke-width="1.1" stroke-linecap="round"/>
-          <g id="c-ear"><path d="M0 0C-8 3-10 17-6 27-3 33 4 32 6 25 8 16 7 6 4 0Z" fill="url(#cear)" stroke="#9a6a43" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/></g>
+          <ellipse cx="2" cy="-2" rx="11" ry="12" fill="url(#cfur)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+          <circle cx="14" cy="-24" r="25" fill="url(#cfur)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+          <ellipse cx="6" cy="-38" rx="10" ry="5" fill="#fff" opacity=".35"/>
+          <path d="M3 -46c2-5 6-5 7-1 1-4 6-4 6 0" fill="none" stroke="#c99566" stroke-width="1.3" stroke-linecap="round"/>
+          <ellipse cx="33" cy="-15" rx="9.5" ry="7.5" fill="#fff1dc" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/>
+          <ellipse cx="40.5" cy="-18.5" rx="4.4" ry="3.6" fill="url(#cnose)"/>
+          <ellipse cx="39.3" cy="-19.6" rx="1.6" ry=".8" fill="#fff" opacity=".55"/>
+          <path id="c-mouth" d="M40 -14.5C38 -11 34 -10.5 31 -12" fill="none" stroke="#3b2c24" stroke-width="1.4" stroke-linecap="round"/>
+          <path id="c-tongue" d="M33 -12c1 5 6 5 6.4 0z" fill="#f28ba8" opacity="0"/>
+          <ellipse cx="24" cy="-27" rx="4.8" ry="5.6" fill="url(#ceye)"/>
+          <circle cx="25.8" cy="-29.4" r="1.9" fill="#fff"/><circle cx="22.8" cy="-24.6" r=".8" fill="#fff" opacity=".8"/>
+          <ellipse id="c-lid" cx="24" cy="-27" rx="5.6" ry="6.2" fill="#f0c48c" transform="scale(1 0)"/>
+          <path d="M20 -34.5c2-1.5 5-1.5 7 .3" stroke="#b9834b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <ellipse cx="27" cy="-15.5" rx="4.4" ry="2.4" fill="#f3a39a" opacity=".5"/>
+          <g id="c-ear"><path d="M0 0C-10 4-13 20-8 31-4 38 4 37 7 29 9 19 8 7 4 0Z" fill="url(#cear)" stroke="#8a5a35" stroke-opacity=".7" stroke-width="1.5" stroke-linejoin="round"/></g>
         </g>
       </svg>
       </div>
+    </div>
+    <div class="balloon" role="dialog" aria-label="강아지 도우미" hidden>
+      <p class="b-title">무엇을 도와드릴까요?</p>
+      <p class="b-text" hidden></p>
+      <ul class="b-options"></ul>
+      <div class="b-actions"><button type="button" class="b-close">닫기</button></div>
     </div>
   </div>
 
