@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f6b5c">
+  <title>도기 여행가계부</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <label class="sr" for="trip-select">여행 선택</label>
+      <select id="trip-select"></select>
+      <span id="net-badge" class="net" title="인터넷 연결 상태"></span>
+    </div>
+    <p id="trip-meta" class="meta"></p>
+  </header>
+
+  <main>
+    <!-- 기록 -->
+    <section id="view-log" class="view">
+      <div class="total-strip">
+        <div><span class="label">총 지출</span><strong id="total-spent">0</strong></div>
+        <button id="open-form" class="primary" type="button">+ 기록</button>
+      </div>
+
+      <form id="entry-form" class="sheet" hidden novalidate>
+        <div class="seg" role="tablist" aria-label="기록 종류">
+          <button type="button" data-kind="expense" class="on">지출</button>
+          <button type="button" data-kind="transfer">정산 송금</button>
+        </div>
+
+        <div class="grid2">
+          <label>날짜<input id="f-date" type="date" required></label>
+          <label class="expense-only">분류
+            <select id="f-category">
+              <option>식비</option><option>숙소</option><option>교통</option><option>관광</option>
+              <option>쇼핑</option><option>항공</option><option>기타</option>
+            </select>
+          </label>
+        </div>
+        <label class="expense-only">내용<input id="f-title" type="text" placeholder="예: 도톤보리 라멘" autocomplete="off"></label>
+
+        <div class="amount-row">
+          <label class="grow">금액<input id="f-amount" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+          <label class="cur">통화<input id="f-currency" type="text" list="currency-list" maxlength="3" autocapitalize="characters" autocomplete="off"></label>
+        </div>
+        <div id="chip-currencies" class="chips"></div>
+
+        <div id="rate-box" class="rate-box" hidden>
+          <div class="rate-line">
+            <span id="rate-text">환율 확인 중…</span>
+            <button id="rate-edit" type="button" class="link">직접 입력</button>
+          </div>
+          <label id="rate-manual" hidden><span class="lab">환율 (1 <span class="cur-a"></span> = ? <span class="cur-b"></span>)</span>
+            <input id="f-rate" type="text" inputmode="decimal" autocomplete="off">
+          </label>
+          <label class="expense-only"><span class="lab">실제 결제된 <span class="cur-b"></span> 금액 <small>(카드 원화 결제·원화 예약일 때만)</small></span>
+            <input id="f-base" type="text" inputmode="decimal" placeholder="비워두면 환율로 계산" autocomplete="off">
+          </label>
+        </div>
+
+        <fieldset>
+          <legend id="payer-legend">낸 사람</legend>
+          <div id="f-payer" class="pills"></div>
+        </fieldset>
+
+        <fieldset class="expense-only">
+          <legend>나누기</legend>
+          <div class="seg small" id="split-mode">
+            <button type="button" data-mode="equal" class="on">똑같이</button>
+            <button type="button" data-mode="shares">비율</button>
+            <button type="button" data-mode="exact">금액 지정</button>
+          </div>
+          <div id="split-members" class="split"></div>
+          <p id="split-hint" class="hint"></p>
+        </fieldset>
+
+        <fieldset class="transfer-only" hidden>
+          <legend>받은 사람</legend>
+          <div id="f-receiver" class="pills"></div>
+        </fieldset>
+
+        <label>메모<input id="f-memo" type="text" autocomplete="off"></label>
+        <p id="form-error" class="error" role="alert"></p>
+        <div class="actions">
+          <button type="button" id="cancel-form" class="ghost">취소</button>
+          <button type="submit" class="primary">저장</button>
+        </div>
+      </form>
+
+      <div id="pending-banner" class="banner" hidden>
+        <span id="pending-text"></span>
+        <button id="fill-rates" type="button" class="link">환율 채우기</button>
+      </div>
+      <ol id="entries" class="entries"></ol>
+      <p id="empty-log" class="empty" hidden>아직 기록이 없습니다. <b>+ 기록</b>으로 첫 지출을 넣어 보세요.</p>
+    </section>
+
+    <!-- 정산 -->
+    <section id="view-settle" class="view" hidden>
+      <label class="inline">정산 통화
+        <select id="settle-currency"></select>
+      </label>
+      <p id="settle-error" class="error" role="alert"></p>
+      <div id="settle-out"></div>
+    </section>
+
+    <!-- 여행 -->
+    <section id="view-trip" class="view" hidden>
+      <form id="trip-form" class="card" novalidate>
+        <h2 id="trip-form-title">여행</h2>
+        <label>이름<input id="t-name" type="text" required placeholder="오사카 4박" autocomplete="off"></label>
+        <div class="grid2">
+          <label>시작<input id="t-start" type="date"></label>
+          <label>끝<input id="t-end" type="date"></label>
+        </div>
+        <label>참여자 <small>(쉼표로 구분, 이름은 나중에 추가만 가능)</small>
+          <input id="t-members" type="text" placeholder="나, 민수, 지현" autocomplete="off"></label>
+        <label>기준 통화 <small>(정산 기본 통화)</small>
+          <input id="t-base" type="text" list="currency-list" maxlength="3" value="KRW" autocomplete="off"></label>
+        <p id="trip-error" class="error" role="alert"></p>
+        <div class="actions">
+          <button type="button" id="trip-new" class="ghost">새 여행</button>
+          <button type="submit" class="primary">저장</button>
+        </div>
+      </form>
+
+      <div class="card">
+        <h2>오늘 환율 <small id="rates-asof"></small></h2>
+        <p class="hint">다른 통화로 정산할 때 쓰는 여행 기본 환율입니다. 지출 항목은 각각 결제일 환율로 계산됩니다.</p>
+        <table class="rates"><tbody id="rates-body"></tbody></table>
+        <div class="actions"><button id="refresh-rates" type="button" class="ghost">최신 환율로 갱신</button></div>
+      </div>
+
+      <div class="card">
+        <h2>백업 · PC 연동</h2>
+        <p class="hint">기록은 이 휴대폰 브라우저에만 저장됩니다. 파일로 내보내 OneDrive <code>travel-ledgers</code> 폴더에 두면 PC의 도기비서가 같은 가계부를 읽고 정산합니다.</p>
+        <div class="actions wrap">
+          <button id="export" type="button" class="ghost">파일로 내보내기</button>
+          <button id="copy-json" type="button" class="ghost">JSON 복사</button>
+          <label class="ghost file">가져오기<input id="import" type="file" accept="application/json,.json"></label>
+        </div>
+        <p id="io-msg" class="hint" role="status"></p>
+        <div class="danger">
+          <button id="delete-trip" type="button" class="link danger-text">이 여행 삭제</button>
+          <span id="delete-confirm" hidden>정말 삭제할까요? <button id="delete-yes" type="button" class="link danger-text">삭제</button> <button id="delete-no" type="button" class="link">취소</button></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="화면">
+    <button type="button" data-view="log" class="on">기록</button>
+    <button type="button" data-view="settle">정산</button>
+    <button type="button" data-view="trip">여행</button>
+  </nav>
+
+  <datalist id="currency-list">
+    <option value="KRW">원</option><option value="JPY">엔</option><option value="USD">달러</option>
+    <option value="EUR">유로</option><option value="CNY">위안</option><option value="TWD">대만 달러</option>
+    <option value="HKD">홍콩 달러</option><option value="THB">바트</option><option value="VND">동</option>
+    <option value="SGD">싱가포르 달러</option><option value="PHP">페소</option><option value="MYR">링깃</option>
+    <option value="IDR">루피아</option><option value="AUD">호주 달러</option><option value="GBP">파운드</option>
+    <option value="CHF">스위스 프랑</option><option value="CAD">캐나다 달러</option><option value="NZD">뉴질랜드 달러</option>
+  </datalist>
+
+  <script src="ledger.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
