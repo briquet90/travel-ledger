@@ -112,45 +112,30 @@ td.num { font-family: var(--display); }
   background: var(--accent); -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
 }
 
-/* ---------- 움직이는 강아지: 꽃 물고 한 발 들고 아장아장 ---------- */
+/* ---------- 동반 강아지 (움직임은 dog.js) ---------- */
 .top { position: sticky; }
 .mascot { cursor: pointer; overflow: hidden; }
 .mascot.hop { animation: hop .7s ease-out; }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px) rotate(-6deg); } 55% { transform: translateY(0); } 75% { transform: translateY(-4px) rotate(4deg); } }
-.mascot-bubble, .walker .bubble {
-  background: var(--surface); color: var(--ink); font: 15px var(--display); white-space: nowrap;
-  padding: 6px 12px; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 3px 0 rgba(59, 44, 36, .12);
+.mascot-bubble, .companion .bubble {
+  background: var(--surface); color: var(--ink); font: 15px/1.35 var(--display);
+  padding: 7px 12px; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 3px 0 rgba(59, 44, 36, .12);
 }
-.mascot-bubble { position: absolute; left: 76px; top: calc(58px + env(safe-area-inset-top, 0px)); margin: 0; z-index: 8; }
+.mascot-bubble { position: absolute; left: 76px; top: calc(58px + env(safe-area-inset-top, 0px)); margin: 0; z-index: 8; white-space: nowrap; }
 .mascot-bubble::before { content: ""; position: absolute; left: -8px; top: 9px; border: 6px solid transparent; border-right-color: var(--accent); border-left: 0; }
 
-.walker {
-  position: fixed; left: 0; right: 0; height: 140px; z-index: 5; pointer-events: none; overflow: hidden;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+.companion {
+  position: fixed; left: 0; right: 0; height: 170px; z-index: 5; pointer-events: none; overflow: hidden;
+  bottom: calc(74px + env(safe-area-inset-bottom, 0px));
 }
-.walker-move { position: absolute; left: 0; bottom: 0; width: 72px; transform: translateX(-100px); }
-.walker-dog { width: 72px; height: 90px; display: block; overflow: visible; }
-.walker .bubble { position: absolute; bottom: 86px; left: 30px; opacity: 0; }
-@media (prefers-reduced-motion: no-preference) {
-  /* 평소: 34초마다 한 번 천천히 지나감 (화면 밖에서 쉬다가 등장) */
-  .walker-move { animation: stroll 34s linear 4s infinite; }
-  .walker .pup { transform-box: fill-box; transform-origin: 50% 100%; animation: toddle .5s ease-in-out infinite alternate; }
-  .walker .leg-r { transform-box: fill-box; transform-origin: 20% 0%; animation: paw .5s ease-in-out infinite alternate; }
-  .walker .leg-l { transform-box: fill-box; transform-origin: 50% 0%; animation: paw-l .5s ease-in-out infinite alternate; }
-  .walker .ear-l { transform-box: fill-box; transform-origin: 70% 5%; animation: flap-l .5s ease-in-out infinite alternate; }
-  .walker .ear-r { transform-box: fill-box; transform-origin: 30% 5%; animation: flap-r .5s ease-in-out infinite alternate; }
-  .walker .flower { transform-box: fill-box; transform-origin: 20% 40%; animation: sway .5s ease-in-out infinite alternate; }
-  /* 저장했을 때: 말풍선 달고 신나게 뛰어 지나감 */
-  .walker.run .walker-move { animation: dash 3.6s cubic-bezier(.3, .1, .4, 1) 1; }
-  .walker.run .pup, .walker.run .leg-r, .walker.run .leg-l, .walker.run .ear-l, .walker.run .ear-r { animation-duration: .2s; }
-  .walker.run .bubble { animation: pop 3.6s ease 1; }
+.c-move { position: absolute; left: 0; bottom: 0; width: 120px; will-change: transform; }
+.c-flip { width: 120px; height: 87px; }
+.c-dog { width: 120px; height: 87px; display: block; overflow: visible; pointer-events: auto; cursor: pointer; }
+.companion .bubble {
+  position: absolute; bottom: 84px; left: 10px; margin: 0; width: max-content; max-width: min(240px, calc(100vw - 40px));
+  animation: pop .25s ease-out;
 }
-@media (prefers-reduced-motion: reduce) { .walker { display: none; } }
-@keyframes stroll { 0% { transform: translateX(-100px); } 45% { transform: translateX(calc(100vw + 20px)); } 100% { transform: translateX(calc(100vw + 20px)); } }
-@keyframes dash { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 20px)); } }
-@keyframes toddle { from { transform: rotate(-4deg) translateY(0); } to { transform: rotate(4deg) translateY(-2px); } }
-@keyframes paw { from { transform: rotate(0) translateY(0); } to { transform: rotate(-14deg) translateY(-3px); } }
-@keyframes paw-l { from { transform: translateY(-2px); } to { transform: translateY(0); } }
-@keyframes flap-l { from { transform: rotate(-3deg); } to { transform: rotate(7deg); } }
-@keyframes flap-r { from { transform: rotate(3deg); } to { transform: rotate(-7deg); } }
-@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 10%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+.companion .bubble::after { content: ""; position: absolute; left: 38px; bottom: -8px; border: 7px solid transparent; border-top-color: var(--accent); border-bottom: 0; }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
+/* 입력 칸이 열려 있으면 강아지를 눌러도 아래 버튼이 눌리도록 */
+body:has(#entry-form:not([hidden])) .c-dog { pointer-events: none; }
