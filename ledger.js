@@ -29,6 +29,15 @@
     return code;
   }
 
+  /* 개인 여행은 1,2,3… 정수, 공유 여행은 기기마다 겹치지 않는 시간순 문자열 id. */
+  function compareIds(a, b) {
+    return typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b));
+  }
+  function newId() {
+    const rand = crypto.getRandomValues(new Uint8Array(6));
+    return Date.now().toString(36).padStart(9, "0") + [...rand].map((x) => x.toString(36).padStart(2, "0")).join("").slice(0, 8);
+  }
+
   function newTrip({ id, name, members, base = "KRW", start = null, end = null }) {
     const clean = [...new Set(members.map((m) => m.trim()).filter(Boolean))];
     if (!clean.length) throw new LedgerError("참여자를 한 명 이상 입력하세요.");
@@ -120,7 +129,7 @@
     if (f.payers) f.payer = Object.keys(f.payers).find((n) => Number(String(f.payers[n]).replace(/,/g, "")) > 0);
     if (!trip.members.includes(f.payer)) throw new LedgerError(`결제자가 참여자가 아닙니다: ${f.payer}`);
     const e = {
-      id: trip.next_id, kind: f.kind || "expense", date: f.date, title: (f.title || "").trim() || f.category || "기타",
+      id: f.id ?? trip.next_id, kind: f.kind || "expense", date: f.date, title: (f.title || "").trim() || f.category || "기타",
       category: f.category || "기타", amount: String(amount), currency: currencyCode(f.currency), payer: f.payer,
       split: f.split, base_amount: f.base_amount ? String(num(f.base_amount, "실결제 금액")) : null,
       rate: f.rate ? String(num(f.rate, "환율")) : null, memo: f.memo || "",
@@ -128,7 +137,7 @@
     if (payers) e.payers = payers;
     if (f.rate_source) e.rate_source = f.rate_source;
     if (f.rate_pending) e.rate_pending = true;
-    trip.next_id += 1;
+    if (f.id === undefined) trip.next_id += 1;
     trip.expenses.push(e);
     return e;
   }
@@ -142,7 +151,7 @@
     const z = () => Object.fromEntries(trip.members.map((m) => [m, 0]));
     const paid = z(), owed = z(), sent = z(), received = z();
     const byCategory = {}, lines = [], missing = new Set();
-    const sorted = [...expenses].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id));
+    const sorted = [...expenses].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : compareIds(a.id, b.id)));
     for (const e of sorted) {
       let value;
       try { value = convert ? valueIn(trip, e, target) : Number(e.amount); }
@@ -211,6 +220,6 @@
     throw new LedgerError(`환율을 가져오지 못했습니다 (${errors.join(", ")}). 인터넷 연결을 확인하거나 직접 입력하세요.`);
   }
 
-  return { LedgerError, minorUnits, toMinor, fromMinor, fmtMinor, num, currencyCode, newTrip, rateOf,
+  return { LedgerError, compareIds, newId, minorUnits, toMinor, fromMinor, fmtMinor, num, currencyCode, newTrip, rateOf,
     valueIn, allocate, minimalTransfers, buildSplit, addExpense, needsDatedRate, settle, settleByCurrency, fetchRate };
 });

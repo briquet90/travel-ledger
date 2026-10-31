@@ -68,6 +68,7 @@
         <fieldset>
           <legend id="payer-legend">낸 사람</legend>
           <div id="f-payer" class="pills"></div>
+          <button type="button" id="multi-pay" class="link small-link">여러 명이 나눠 냈어요</button>
           <div id="payer-amounts" class="split" hidden></div>
           <p id="payer-hint" class="hint"></p>
         </fieldset>
@@ -127,12 +128,29 @@
         <div class="field"><span class="lab-text">기준 통화 <small>(정산 기본 통화)</small></span>
           <button type="button" id="t-base-btn" class="cur-btn wide" aria-haspopup="dialog">KRW</button>
           <input id="t-base" type="hidden" value="KRW"></div>
+        <label id="t-shared-row" class="check" hidden><input id="t-shared" type="checkbox"> 같이 쓰기 — 초대 링크로 함께 기록</label>
         <p id="trip-error" class="error" role="alert"></p>
         <div class="actions">
           <button type="button" id="trip-new" class="ghost">새 여행</button>
           <button type="submit" class="primary">저장</button>
         </div>
       </form>
+
+      <div class="card" id="share-card" hidden>
+        <h2>같이 쓰기</h2>
+        <div id="share-personal" class="stack">
+          <p class="hint">초대 링크를 만들면 링크를 받은 사람은 로그인 없이 이 가계부를 보고 함께 입력합니다. 같이 가는 사람에게만 보내세요.</p>
+          <div class="actions start"><button id="share-make" type="button" class="primary">초대 링크 만들기</button></div>
+        </div>
+        <div id="share-on" class="stack" hidden>
+          <p class="hint">이 링크를 받은 사람은 누구나 편집할 수 있습니다. 단톡방처럼 같이 가는 사람에게만 공유하세요.</p>
+          <label>초대 링크<input id="share-link" type="text" readonly></label>
+          <div class="actions wrap"><button id="share-copy" type="button" class="primary">링크 복사</button><button id="share-send" type="button" class="ghost">카톡 등으로 보내기</button></div>
+          <p id="sync-state" class="hint"></p>
+        </div>
+        <p id="share-me-warn" class="hint warn" hidden>참여자에 '나'가 있습니다. 같이 쓰면 누가 '나'인지 헷갈리니 각자 이름으로 바꾸는 것을 권합니다.</p>
+        <p id="share-msg" class="hint" role="status"></p>
+      </div>
 
       <div class="card">
         <h2>오늘 환율 <small id="rates-asof"></small></h2>

@@ -1,0 +1,109 @@
+/* 멍멍 여행가계부 — 기본 styles.css 위에 덮어쓰는 강아지(시바견) 테마.
+   Layout: 같은 화면 구성. 하늘색 바탕 + 시바 주황 헤더 + 둥근 카드, 숫자는 둥근 Jua 서체로 도장처럼. */
+:root {
+  --bg: #e9f4fb; --surface: #ffffff; --ink: #3b2c24; --muted: #7a6a60; --line: #d8e5ee;
+  --accent: #e8913a; --accent-soft: #fdebd6; --on-accent: #3b2c24;
+  --owe: #d4574f; --get: #2a8f63; --warn-bg: #fff1c9; --warn-ink: #7a5600;
+  --tongue: #f28ba8; --cream: #fff7ee;
+  --font: "Gowun Dodum", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --display: "Jua", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "Jua", "Gowun Dodum", ui-rounded, system-ui, sans-serif;
+  --r: 16px;
+  --paw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='12' cy='16' rx='5.2' ry='4.4'/%3E%3Cellipse cx='5.2' cy='10.4' rx='2.2' ry='2.8'/%3E%3Cellipse cx='9.4' cy='6.2' rx='2.2' ry='2.9'/%3E%3Cellipse cx='14.6' cy='6.2' rx='2.2' ry='2.9'/%3E%3Cellipse cx='18.8' cy='10.4' rx='2.2' ry='2.8'/%3E%3C/svg%3E");
+  --bone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='4.6' cy='9' r='2.7'/%3E%3Ccircle cx='4.6' cy='15' r='2.7'/%3E%3Ccircle cx='19.4' cy='9' r='2.7'/%3E%3Ccircle cx='19.4' cy='15' r='2.7'/%3E%3Crect x='4.6' y='9.4' width='14.8' height='5.2' rx='1.4'/%3E%3C/svg%3E");
+  --house: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3 2.5 11h2.6v9.5h5.4v-6h3v6h5.4V11h2.6z'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #18202c; --surface: #222c3a; --ink: #f6ede6; --muted: #b5a89d; --line: #33404f;
+    --accent: #f2a65a; --accent-soft: #3d3124; --on-accent: #2a1c12;
+    --owe: #ff8f86; --get: #6fd3a3; --warn-bg: #3b3115; --warn-ink: #f2d27a; --cream: #2b2620; color-scheme: dark; }
+}
+
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--accent) 9%, transparent) 3px, transparent 3.5px);
+  background-size: 34px 34px;
+  font-family: var(--font);
+}
+
+/* 헤더: 시바 얼굴 + 둥근 아래 모서리 */
+.top {
+  background: var(--accent); color: var(--on-accent);
+  border-radius: 0 0 26px 26px;
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--accent) 55%, var(--ink) 12%);
+}
+.top-row { gap: 12px; }
+.mascot { width: 52px; height: 52px; flex: none; margin: -2px 0 -4px; }
+.mascot svg { width: 100%; height: 100%; display: block; }
+@media (prefers-reduced-motion: no-preference) {
+  .mascot .ear-l { transform-origin: 18px 20px; animation: wiggle 3.2s ease-in-out infinite; }
+  .mascot .ear-r { transform-origin: 46px 20px; animation: wiggle 3.2s ease-in-out .4s infinite reverse; }
+  @keyframes wiggle { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(-9deg); } 92% { transform: rotate(5deg); } }
+}
+.top select { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .01em; }
+.top select option { color: #3b2c24; }
+.meta { opacity: .9; }
+.net { background: color-mix(in srgb, var(--surface) 55%, transparent); color: var(--on-accent); font-family: var(--display); }
+
+h2, .total-strip strong, .transfer-card .amt, .entry .a, legend, .day, .tabs button { font-family: var(--display); font-weight: 400; }
+.total-strip strong { font-size: 30px; }
+.total-strip .label::before, .day span:first-child::before {
+  content: ""; display: inline-block; width: 13px; height: 13px; margin-right: 5px; vertical-align: -1px;
+  background: var(--accent); -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
+}
+
+/* 버튼·카드 둥글게 */
+.primary, .ghost, .file, .seg button, .cur-btn, input, select { border-radius: 14px; }
+.primary { box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 60%, var(--ink) 20%); font-family: var(--display); font-weight: 400; font-size: 17px; }
+.primary:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 60%, var(--ink) 20%); }
+#open-form { padding: 10px 18px; border-radius: 999px; }
+.sheet, .card { border-radius: 22px; border-width: 2px; }
+.seg button:first-child { border-radius: 14px 0 0 14px; }
+.seg button:last-child { border-radius: 0 14px 14px 0; }
+.seg button.on, .pills button.on, .chips button.on { background: var(--accent-soft); border-color: var(--accent); }
+.pills button { border-width: 2px; }
+#f-amount { font-family: var(--display); font-weight: 400; font-size: 26px; }
+
+/* 기록 목록: 카드마다 작은 발자국 */
+.entry { border-width: 2px; }
+.entry.first { border-radius: 20px 20px 0 0; }
+.entry.last { border-radius: 0 0 20px 20px; border-bottom-width: 2px; }
+.entry.first.last { border-radius: 20px; }
+.entry .a { font-size: 17px; }
+.entry.transfer .t::before {
+  content: ""; display: inline-block; width: 16px; height: 16px; margin-right: 4px; vertical-align: -2px;
+  background: var(--accent); -webkit-mask: var(--bone) center / contain no-repeat; mask: var(--bone) center / contain no-repeat;
+}
+
+/* 정산: 뼈다귀 송금 카드 */
+.transfer-card { border-width: 2px; border-radius: 22px; position: relative; padding-left: 52px; background: var(--cream); }
+.transfer-card::before {
+  content: ""; position: absolute; left: 14px; top: 16px; width: 26px; height: 26px;
+  background: var(--accent); -webkit-mask: var(--bone) center / contain no-repeat; mask: var(--bone) center / contain no-repeat;
+}
+.transfer-card .amt { font-size: 24px; }
+.settled { background: var(--accent-soft); font-family: var(--display); font-size: 18px; border-radius: 22px; }
+.bar .track { height: 12px; border-radius: 99px; }
+.bar .fill { border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--tongue)); }
+td.num { font-family: var(--display); }
+
+/* 아래 탭: 발자국·뼈다귀·집 아이콘 */
+.tabs { border-top: 2px solid var(--line); border-radius: 22px 22px 0 0; }
+.tabs button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 12px; font-size: 15px; }
+.tabs button::before {
+  content: ""; width: 24px; height: 24px; background: currentColor;
+  -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
+}
+.tabs button[data-view="settle"]::before { -webkit-mask-image: var(--bone); mask-image: var(--bone); }
+.tabs button[data-view="trip"]::before { -webkit-mask-image: var(--house); mask-image: var(--house); }
+.tabs button.on { box-shadow: none; }
+.tabs button.on::before { background: var(--accent); }
+
+.picker-sheet { border-radius: 26px 26px 0 0; }
+.picker-head h2 { font-size: 19px; }
+.empty { font-family: var(--display); font-size: 17px; }
+.empty::before {
+  content: ""; display: block; width: 46px; height: 46px; margin: 0 auto 10px; opacity: .55;
+  background: var(--accent); -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
+}

@@ -174,3 +174,11 @@ code { font-family: var(--mono); font-size: 12px; }
 .tabs button { flex: 1; border: 0; background: none; padding: 14px 0 16px; font-size: 15px; color: var(--muted); cursor: pointer; }
 .tabs button.on { color: var(--accent); font-weight: 700; box-shadow: inset 0 3px 0 var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .sheet { animation: rise .16s ease-out; } @keyframes rise { from { transform: translateY(6px); opacity: .6; } } }
+
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.actions.start { justify-content: flex-start; }
+.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.warn { color: var(--warn-ink); background: var(--warn-bg); padding: 8px 10px; border-radius: 8px; }
+#share-link { font: 13px var(--mono); }
+.small-link { align-self: flex-start; font-size: 13px; }

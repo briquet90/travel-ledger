@@ -3,6 +3,7 @@
   "use strict";
   const L = window.Ledger;
   const $ = (id) => document.getElementById(id);
+  const BASE = new URL(".", document.currentScript.src);
   const KEY = "dogi-travel-v1";
   const RATE_CACHE = "dogi-travel-rates-v1";
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
@@ -25,7 +26,52 @@
     store.trips[trip.id] = trip;
     store.current = trip.id;
     persist();
+    if (trip.shared && Sync) {
+      // 이 객체가 출발한 서버 상태(origin)와 비교해 이 기기에서 바꾼 것만 보낸다 → 다른 사람이 추가한 기록을 지우지 않는다.
+      Sync.push(origins.get(trip) || null, trip);
+      origins.set(trip, clone(trip));
+    }
   }
+
+  /* ---------------- 공유(동기화) */
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const origins = new WeakMap();
+  const watching = {};
+  const syncState = {};
+  let Sync = null;
+  const emuParam = new URLSearchParams(location.search).get("emu");
+  const syncReady = import(new URL("firebase-config.js", BASE))
+    .then((m) => (m.FIREBASE_CONFIG || emuParam ? import(new URL("sync.js", BASE)) : null))
+    .then((m) => { Sync = m && m.available ? m : null; return Sync; })
+    .catch(() => null);
+
+  function watchTrip(id) {
+    if (!Sync || watching[id]) return;
+    watching[id] = Sync.watch(id, (r) => {
+      const old = store.trips[id];
+      if (r.missing || r.error) {
+        syncState[id] = r.missing ? "없는 링크" : "연결 오류";
+        if (old && old.joining) {
+          delete store.trips[id]; stopWatching(id);
+          if (store.current === id) store.current = Object.keys(store.trips)[0] || null;
+          persist();
+          flash(r.missing ? "초대 링크의 가계부를 찾지 못했습니다. 링크를 다시 확인하세요." : "공유 가계부에 연결하지 못했습니다.");
+        }
+        renderAll();
+        return;
+      }
+      const t = r.trip;
+      if (old) { t.last_currency = old.last_currency; t.last_payer = old.last_payer; }
+      origins.set(t, clone(t));
+      store.trips[id] = t;
+      syncState[id] = !navigator.onLine ? (r.pending ? "오프라인 · 연결되면 자동 전송" : "오프라인")
+        : r.pending ? "보내는 중" : r.fromCache ? "연결 중" : "동기화됨";
+      persist();
+      renderAll();
+    });
+  }
+  function stopWatching(id) { if (watching[id]) { watching[id](); delete watching[id]; } }
+  const shareLink = (id) => `${location.origin}${location.pathname}#t=${id}`;
   const trip = () => store.trips[store.current] || null;
 
   /* ---------------- formatting */
@@ -107,7 +153,7 @@
     const t = trip();
     if (t) sel.value = t.id; else sel.value = "__new";
     $("trip-meta").textContent = t
-      ? `${t.members.join(" · ")}  ·  기준 ${t.base_currency}${t.start ? `  ·  ${t.start.slice(5)}~${(t.end || "").slice(5)}` : ""}`
+      ? `${t.shared ? `공유 · ${syncState[t.id] || (Sync ? "연결 중" : "공유 기능 꺼짐")}  ·  ` : ""}${t.members.join(" · ")}  ·  기준 ${t.base_currency}${t.start ? `  ·  ${t.start.slice(5)}~${(t.end || "").slice(5)}` : ""}`
       : "여행을 만들면 기록을 시작할 수 있습니다.";
   }
   $("trip-select").addEventListener("change", (ev) => {
@@ -192,7 +238,7 @@
   $("t-base-btn").addEventListener("click", () => openPicker($("t-base").value, setTripBase));
 
   /* ---------------- entry form */
-  const form = { kind: "expense", payer: null, payers: [], receiver: null, mode: "equal", rate: null, manual: false };
+  const form = { kind: "expense", payer: null, payers: [], multiPay: false, receiver: null, mode: "equal", rate: null, manual: false };
   let payValues = {};
 
   function openForm() {
@@ -202,6 +248,7 @@
     form.payer = t.last_payer && t.members.includes(t.last_payer) ? t.last_payer : t.members[0];
     form.receiver = null;
     form.payers = [form.payer];
+    form.multiPay = false;
     payValues = {};
     $("f-date").value = today();
     $("f-category").value = "식비";
@@ -216,6 +263,12 @@
   }
   function closeForm() { $("entry-form").hidden = true; $("open-form").hidden = false; }
   $("open-form").addEventListener("click", openForm);
+  $("multi-pay").addEventListener("click", () => {
+    form.multiPay = !form.multiPay;
+    if (!form.multiPay) form.payers = [form.payers[0]];
+    form.payer = form.payers[0];
+    renderForm();
+  });
   $("cancel-form").addEventListener("click", closeForm);
 
   document.querySelectorAll("#entry-form .seg[role=tablist] button").forEach((b) => b.addEventListener("click", () => {
@@ -238,14 +291,19 @@
     const transfer = form.kind === "transfer";
     document.querySelectorAll("#entry-form .expense-only").forEach((el) => { el.hidden = transfer; });
     document.querySelectorAll("#entry-form .transfer-only").forEach((el) => { el.hidden = !transfer; });
-    $("payer-legend").textContent = transfer ? "보낸 사람" : "낸 사람 (여러 명이 나눠 냈으면 모두 선택)";
+    $("payer-legend").textContent = transfer ? "보낸 사람" : form.multiPay ? "낸 사람 (나눠 낸 사람을 모두 선택)" : "낸 사람";
+    $("multi-pay").hidden = transfer;
+    $("multi-pay").textContent = form.multiPay ? "한 사람이 냈어요" : "여러 명이 나눠 냈어요";
     if (transfer) {
       pills("f-payer", t.members, form.payer, (m) => { form.payer = m; if (form.receiver === m) form.receiver = null; renderForm(); });
     } else {
       pills("f-payer", t.members, form.payers, (m) => {
-        const on = form.payers.includes(m);
-        if (on && form.payers.length === 1) return; // 최소 한 명
-        form.payers = on ? form.payers.filter((x) => x !== m) : t.members.filter((x) => x === m || form.payers.includes(x));
+        if (!form.multiPay) form.payers = [m]; // 기본: 누르면 그 사람으로 바뀜
+        else {
+          const on = form.payers.includes(m);
+          if (on && form.payers.length === 1) return; // 최소 한 명
+          form.payers = on ? form.payers.filter((x) => x !== m) : t.members.filter((x) => x === m || form.payers.includes(x));
+        }
         form.payer = form.payers[0];
         renderForm();
       });
@@ -435,6 +493,7 @@
           fields.rate = form.rate.rate; fields.rate_source = `${form.rate.source} ${form.rate.asOf}`;
         } else fields.rate_pending = true;
       }
+      if (t.shared) fields.id = L.newId();
       L.addExpense(t, fields);
       t.last_currency = currency; t.last_payer = form.payer;
       saveTrip(t);
@@ -455,7 +514,7 @@
     const t = trip();
     const list = $("entries");
     if (!t) { list.innerHTML = ""; return; }
-    const items = [...t.expenses].sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : b.id - a.id));
+    const items = [...t.expenses].sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : L.compareIds(b.id, a.id)));
     let total = 0;
     for (const e of items) if (e.kind !== "transfer") total += convertedBase(t, e) || 0;
     $("total-spent").textContent = `${fmtMinor(total, t.base_currency)} ${curLabel(t.base_currency)}`;
@@ -489,7 +548,7 @@
     if (!btn) return;
     if (btn.dataset.armed !== "1") { btn.dataset.armed = "1"; btn.textContent = "정말 삭제"; btn.classList.add("danger-text"); return; }
     const t = trip();
-    t.expenses = t.expenses.filter((e) => e.id !== Number(btn.dataset.del));
+    t.expenses = t.expenses.filter((e) => String(e.id) !== btn.dataset.del);
     saveTrip(t);
     renderLog();
   });
@@ -608,16 +667,68 @@
       }
       t.start = $("t-start").value || null;
       t.end = $("t-end").value || null;
+      const makeShared = !trip() && Sync && $("t-shared").checked;
       saveTrip(t);
       splitValues = {};
       renderAll();
+      if (makeShared) { show("trip"); shareCurrent(); return; }
       show("log");
       refreshTripRates(false);
     } catch (e) { err.textContent = e.message; }
   });
 
+  async function shareCurrent() {
+    const t = trip();
+    if (!t || t.shared || !Sync) return;
+    const msg = $("share-msg");
+    msg.textContent = "초대 링크를 만드는 중…";
+    $("share-make").disabled = true;
+    try {
+      const shared = await Sync.share(t, L.newId);
+      shared.last_currency = t.last_currency; shared.last_payer = t.last_payer;
+      delete store.trips[t.id];
+      store.trips[shared.id] = shared;
+      store.current = shared.id;
+      origins.set(shared, clone(shared));
+      persist();
+      watchTrip(shared.id);
+      msg.textContent = "초대 링크를 만들었습니다. 같이 가는 사람에게 보내세요.";
+    } catch (e) {
+      msg.textContent = navigator.onLine ? "링크를 만들지 못했습니다. 잠시 뒤 다시 시도하세요." : "인터넷에 연결된 상태에서 만들어 주세요.";
+    } finally { $("share-make").disabled = false; renderAll(); }
+  }
+  $("share-make").addEventListener("click", shareCurrent);
+  $("share-copy").addEventListener("click", async () => {
+    const link = $("share-link").value;
+    try { await navigator.clipboard.writeText(link); $("share-msg").textContent = "링크를 복사했습니다."; }
+    catch (e) { $("share-link").select(); $("share-msg").textContent = "링크를 길게 눌러 복사하세요."; }
+  });
+  $("share-send").addEventListener("click", async () => {
+    const t = trip(); if (!t) return;
+    try { await navigator.share({ title: `${t.name} 가계부`, text: `${t.name} 여행 가계부에 같이 기록해요`, url: $("share-link").value }); }
+    catch (e) { /* 취소 또는 미지원 */ }
+  });
+
+  function renderShare() {
+    const t = trip();
+    const card = $("share-card");
+    card.hidden = !t || !Sync;
+    if (card.hidden) return;
+    $("share-personal").hidden = !!t.shared;
+    $("share-on").hidden = !t.shared;
+    if (t.shared) {
+      $("share-link").value = shareLink(t.id);
+      $("sync-state").textContent = `상태: ${syncState[t.id] || "연결 중"}`;
+      $("share-send").hidden = !navigator.share;
+    }
+    $("share-me-warn").hidden = !t.members.includes("나");
+    $("delete-trip").textContent = t.shared ? "이 기기에서 이 여행 빼기 (공유 기록은 남음)" : "이 여행 삭제";
+  }
+
   function renderTrip() {
     const t = trip();
+    renderShare();
+    $("t-shared-row").hidden = !!t || !Sync;
     if (view === "trip" && document.activeElement?.closest?.("#trip-form") == null) fillTripForm(t);
     const body = $("rates-body");
     if (!t) { body.innerHTML = ""; return; }
@@ -632,7 +743,7 @@
   // backup
   const ioMsg = (s) => { $("io-msg").textContent = s; };
   $("export").addEventListener("click", () => {
-    const t = trip(); if (!t) return;
+    const t = exportable(trip()); if (!t) return;
     const blob = new Blob([JSON.stringify(t, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = `${t.id}.json`;
@@ -641,10 +752,23 @@
     ioMsg(`${t.id}.json 을 저장했습니다. OneDrive travel-ledgers 폴더로 옮기면 PC에서도 이어집니다.`);
   });
   $("copy-json").addEventListener("click", async () => {
-    const t = trip(); if (!t) return;
+    const t = exportable(trip()); if (!t) return;
     try { await navigator.clipboard.writeText(JSON.stringify(t, null, 2)); ioMsg("JSON을 복사했습니다."); }
     catch (e) { ioMsg("복사가 막혀 있습니다. 파일로 내보내기를 쓰세요."); }
   });
+  // PC(travel_ledger.py)는 정수 항목 번호를 쓴다. 공유 여행은 날짜순으로 1,2,3… 번호를 붙여 내보낸다.
+  function exportable(t) {
+    if (!t) return null;
+    const out = clone(t);
+    if (out.shared) {
+      out.expenses.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : L.compareIds(a.id, b.id)));
+      out.expenses.forEach((e, i) => { e.share_id = e.id; e.id = i + 1; });
+      out.next_id = out.expenses.length + 1;
+      out.share_link = shareLink(t.id);
+    }
+    delete out.last_currency; delete out.last_payer;
+    return out;
+  }
   $("import").addEventListener("change", async (ev) => {
     const file = ev.target.files[0];
     ev.target.value = "";
@@ -652,6 +776,7 @@
     try {
       const t = JSON.parse(await file.text());
       if (!t.id || !Array.isArray(t.members) || !Array.isArray(t.expenses) || !t.base_currency) throw new Error();
+      if (t.shared) { t.id = `${t.id.slice(0, 6)}-copy`; delete t.shared; delete t.share_link; } // 가져온 파일은 개인 사본
       t.rates = t.rates || {}; t.next_id = t.next_id || (Math.max(0, ...t.expenses.map((e) => e.id)) + 1);
       const existed = !!store.trips[t.id];
       saveTrip(t);
@@ -663,6 +788,7 @@
   $("delete-no").addEventListener("click", () => { $("delete-confirm").hidden = true; });
   $("delete-yes").addEventListener("click", () => {
     const t = trip(); if (!t) return;
+    stopWatching(t.id);
     delete store.trips[t.id];
     store.current = Object.keys(store.trips)[0] || null;
     persist();
@@ -680,10 +806,24 @@
 
   /* ---------------- boot */
   if (!store.current || !store.trips[store.current]) store.current = Object.keys(store.trips)[0] || null;
+  const join = (location.hash.match(/^#t=([A-Za-z0-9]{22})$/) || [])[1];
+  if (join) {
+    history.replaceState(null, "", location.pathname + location.search);
+    if (!store.trips[join]) {
+      store.trips[join] = { id: join, shared: true, joining: true, name: "공유 가계부 불러오는 중…", members: [],
+        base_currency: "KRW", start: null, end: null, rates: {}, expenses: [] };
+    }
+    store.current = join;
+  }
   renderAll();
   if (!trip()) { show("trip"); fillTripForm(null); }
   else { fillPendingRates(); refreshTripRates(false); }
+  syncReady.then(() => {
+    for (const [id, t] of Object.entries(store.trips)) if (t.shared) watchTrip(id);
+    if (join && !Sync) flash("공유 기능이 아직 설정되지 않아 초대 링크를 열 수 없습니다.");
+    renderAll();
+  });
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register(new URL("sw.js", BASE), { scope: BASE.pathname }).catch(() => {});
   }
 })();
