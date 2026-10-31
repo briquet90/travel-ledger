@@ -1,6 +1,6 @@
 {
-  "name": "도기 여행가계부",
-  "short_name": "여행가계부",
+  "name": "여행정산가계부 beta",
+  "short_name": "여행정산가계부",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

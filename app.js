@@ -1,4 +1,4 @@
-/* 도기 여행가계부 — 휴대폰 브라우저용. 데이터는 이 기기 localStorage, 환율은 온라인일 때 실시간 조회. */
+/* 여행정산가계부 beta(댕가계부와 공용) — 휴대폰 브라우저용. 데이터는 이 기기 localStorage, 환율은 온라인일 때 실시간 조회. */
 (() => {
   "use strict";
   const L = window.Ledger;
