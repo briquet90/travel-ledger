@@ -130,8 +130,70 @@
     show(b.dataset.view);
   }));
 
+  /* ---------------- currency picker (브라우저 자동완성 대신 화면 아래 시트) */
+  const CURRENCIES = [
+    ["KRW", "원", "대한민국"], ["JPY", "엔", "일본"], ["USD", "달러", "미국"], ["EUR", "유로", "유럽"],
+    ["CNY", "위안", "중국"], ["TWD", "대만 달러", "대만"], ["HKD", "홍콩 달러", "홍콩"], ["MOP", "파타카", "마카오"],
+    ["THB", "바트", "태국"], ["VND", "동", "베트남"], ["PHP", "페소", "필리핀"], ["SGD", "싱가포르 달러", "싱가포르"],
+    ["MYR", "링깃", "말레이시아"], ["IDR", "루피아", "인도네시아 발리"], ["KHR", "리엘", "캄보디아"], ["LAK", "킵", "라오스"],
+    ["MNT", "투그릭", "몽골"], ["INR", "루피", "인도"], ["NPR", "네팔 루피", "네팔"], ["AED", "디르함", "아랍에미리트 두바이"],
+    ["TRY", "리라", "튀르키예 터키"], ["GBP", "파운드", "영국"], ["CHF", "스위스 프랑", "스위스"], ["CZK", "코루나", "체코"],
+    ["HUF", "포린트", "헝가리"], ["PLN", "즐로티", "폴란드"], ["DKK", "덴마크 크로네", "덴마크"], ["NOK", "노르웨이 크로네", "노르웨이"],
+    ["SEK", "스웨덴 크로나", "스웨덴"], ["ISK", "아이슬란드 크로나", "아이슬란드"], ["AUD", "호주 달러", "호주"],
+    ["NZD", "뉴질랜드 달러", "뉴질랜드"], ["CAD", "캐나다 달러", "캐나다"], ["MXN", "멕시코 페소", "멕시코"],
+    ["BRL", "헤알", "브라질"], ["EGP", "이집트 파운드", "이집트"], ["ZAR", "랜드", "남아공"],
+  ].filter((c) => c[1]);
+  const picker = { onPick: null, current: "" };
+
+  function openPicker(current, onPick) {
+    picker.onPick = onPick; picker.current = current;
+    $("cur-search").value = "";
+    renderPicker();
+    $("cur-picker").hidden = false;
+    document.body.classList.add("noscroll");
+    $("cur-list").scrollTop = 0;
+  }
+  function closePicker() { $("cur-picker").hidden = true; document.body.classList.remove("noscroll"); }
+
+  function renderPicker() {
+    const q = $("cur-search").value.trim().toLowerCase();
+    const match = (c) => !q || c[0].toLowerCase().includes(q) || c[1].includes(q) || c[2].toLowerCase().includes(q);
+    const t = trip();
+    const used = t ? tripCurrencies(t) : [];
+    const row = (c) => `<button type="button" class="cur-item ${c[0] === picker.current ? "on" : ""}" data-code="${c[0]}"><b>${c[0]}</b><span>${esc(c[1])}</span><small>${esc(c[2])}</small></button>`;
+    const known = new Map(CURRENCIES.map((c) => [c[0], c]));
+    const usedRows = used.map((code) => known.get(code) || [code, "", ""]).filter(match);
+    const rest = CURRENCIES.filter((c) => !used.includes(c[0]) && match(c));
+    let html = "";
+    const upper = q.toUpperCase();
+    if (/^[A-Z]{3}$/.test(upper) && !known.has(upper) && !used.includes(upper)) html += row([upper, "직접 입력한 통화", "환율은 자동 조회를 시도합니다"]);
+    if (usedRows.length) html += `<div class="cur-group">이 여행에서 쓴 통화</div>` + usedRows.map(row).join("");
+    if (rest.length) html += `<div class="cur-group">${q ? "검색 결과" : "전체"}</div>` + rest.map(row).join("");
+    $("cur-list").innerHTML = html || `<p class="hint">찾는 통화가 없으면 영문 3글자 코드(예: GEL)를 입력하세요.</p>`;
+  }
+  $("cur-search").addEventListener("input", renderPicker);
+  $("cur-list").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-code]");
+    if (!b) return;
+    const pick = picker.onPick;
+    closePicker();
+    if (pick) pick(b.dataset.code);
+  });
+  $("cur-picker").addEventListener("click", (ev) => { if (ev.target.dataset.close) closePicker(); });
+  addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !$("cur-picker").hidden) closePicker(); });
+
+  function setFormCurrency(code) {
+    $("f-currency").value = code;
+    $("f-currency-btn").textContent = code;
+    renderChips(); updateRatePreview(); renderSplitAmounts(); renderPayerHint();
+  }
+  $("f-currency-btn").addEventListener("click", () => openPicker($("f-currency").value, setFormCurrency));
+  function setTripBase(code) { $("t-base").value = code; $("t-base-btn").textContent = code; }
+  $("t-base-btn").addEventListener("click", () => openPicker($("t-base").value, setTripBase));
+
   /* ---------------- entry form */
-  const form = { kind: "expense", payer: null, receiver: null, mode: "equal", rate: null, manual: false };
+  const form = { kind: "expense", payer: null, payers: [], receiver: null, mode: "equal", rate: null, manual: false };
+  let payValues = {};
 
   function openForm() {
     const t = trip();
@@ -139,10 +201,13 @@
     form.kind = "expense"; form.mode = "equal"; form.manual = false; form.rate = null;
     form.payer = t.last_payer && t.members.includes(t.last_payer) ? t.last_payer : t.members[0];
     form.receiver = null;
+    form.payers = [form.payer];
+    payValues = {};
     $("f-date").value = today();
     $("f-category").value = "식비";
     $("f-title").value = ""; $("f-amount").value = ""; $("f-rate").value = ""; $("f-base").value = ""; $("f-memo").value = "";
     $("f-currency").value = t.last_currency || t.base_currency;
+    $("f-currency-btn").textContent = $("f-currency").value;
     $("form-error").textContent = "";
     $("entry-form").hidden = false;
     $("open-form").hidden = true;
@@ -164,8 +229,7 @@
     if (form.manual && form.rate && !$("f-rate").value) $("f-rate").value = rateText(form.rate.rate);
     updateRatePreview();
   });
-  for (const id of ["f-amount", "f-rate", "f-base"]) $(id).addEventListener("input", () => { renderSplitAmounts(); updateRatePreview(false); });
-  $("f-currency").addEventListener("input", () => { renderChips(); updateRatePreview(); renderSplitAmounts(); });
+  for (const id of ["f-amount", "f-rate", "f-base"]) $(id).addEventListener("input", () => { renderSplitAmounts(); renderPayerHint(); updateRatePreview(false); });
   $("f-date").addEventListener("change", () => updateRatePreview());
 
   function renderForm() {
@@ -174,8 +238,19 @@
     const transfer = form.kind === "transfer";
     document.querySelectorAll("#entry-form .expense-only").forEach((el) => { el.hidden = transfer; });
     document.querySelectorAll("#entry-form .transfer-only").forEach((el) => { el.hidden = !transfer; });
-    $("payer-legend").textContent = transfer ? "보낸 사람" : "낸 사람";
-    pills("f-payer", t.members, form.payer, (m) => { form.payer = m; if (form.receiver === m) form.receiver = null; renderForm(); });
+    $("payer-legend").textContent = transfer ? "보낸 사람" : "낸 사람 (여러 명이 나눠 냈으면 모두 선택)";
+    if (transfer) {
+      pills("f-payer", t.members, form.payer, (m) => { form.payer = m; if (form.receiver === m) form.receiver = null; renderForm(); });
+    } else {
+      pills("f-payer", t.members, form.payers, (m) => {
+        const on = form.payers.includes(m);
+        if (on && form.payers.length === 1) return; // 최소 한 명
+        form.payers = on ? form.payers.filter((x) => x !== m) : t.members.filter((x) => x === m || form.payers.includes(x));
+        form.payer = form.payers[0];
+        renderForm();
+      });
+    }
+    renderPayers();
     if (transfer) pills("f-receiver", t.members.filter((m) => m !== form.payer), form.receiver, (m) => { form.receiver = m; renderForm(); });
     renderChips();
     renderSplit();
@@ -184,8 +259,38 @@
 
   function pills(id, items, selected, onPick) {
     const box = $(id);
-    box.innerHTML = items.map((m) => `<button type="button" class="${m === selected ? "on" : ""}" aria-pressed="${m === selected}">${esc(m)}</button>`).join("");
+    const isOn = (m) => (Array.isArray(selected) ? selected.includes(m) : m === selected);
+    box.innerHTML = items.map((m) => `<button type="button" class="${isOn(m) ? "on" : ""}" aria-pressed="${isOn(m)}">${esc(m)}</button>`).join("");
     [...box.children].forEach((b, i) => b.addEventListener("click", () => onPick(items[i])));
+  }
+
+  // 여러 명이 나눠 낸 경우 각자 낸 금액
+  function renderPayers() {
+    const box = $("payer-amounts");
+    const multi = form.kind === "expense" && form.payers.length > 1;
+    box.hidden = !multi;
+    if (!multi) { box.innerHTML = ""; $("payer-hint").textContent = ""; return; }
+    box.innerHTML = form.payers.map((m, i) => `<div class="split-row"><span class="name">${esc(m)} 낸 금액</span><input type="text" inputmode="decimal" id="pay-${i}" value="${esc(payValues[m] ?? "")}" placeholder="0" aria-label="${esc(m)} 낸 금액"></div>`).join("");
+    form.payers.forEach((m, i) => $("pay-" + i).addEventListener("input", (e) => { payValues[m] = e.target.value; renderPayerHint(); }));
+    renderPayerHint();
+  }
+
+  function payerAmounts() {
+    return Object.fromEntries(form.payers.map((m) => [m, String(payValues[m] ?? "").replace(/,/g, "").trim() || "0"]));
+  }
+
+  function renderPayerHint() {
+    const hint = $("payer-hint");
+    if (form.payers.length < 2) { hint.textContent = ""; return; }
+    let amount = 0;
+    try { amount = L.num($("f-amount").value); } catch (e) { amount = 0; }
+    const cur = ($("f-currency").value || "KRW").toUpperCase();
+    const c = /^[A-Z]{3}$/.test(cur) ? cur : "KRW";
+    const sum = Object.values(payerAmounts()).reduce((s, v) => s + (Number(v) || 0), 0);
+    const left = amount - sum;
+    hint.textContent = !amount ? "총액을 먼저 입력하세요." :
+      Math.abs(left) < 1e-9 ? `합계 ${fmt(sum, c)} ${curLabel(cur)} — 총액과 같습니다.` :
+      `남은 금액 ${fmt(left, c)} ${curLabel(cur)}`;
   }
 
   function renderChips() {
@@ -194,9 +299,7 @@
     const now = $("f-currency").value.toUpperCase();
     const box = $("chip-currencies");
     box.innerHTML = curs.map((c) => `<button type="button" class="${c === now ? "on" : ""}">${c}</button>`).join("");
-    [...box.children].forEach((b) => b.addEventListener("click", () => {
-      $("f-currency").value = b.textContent; renderChips(); updateRatePreview(); renderSplitAmounts();
-    }));
+    [...box.children].forEach((b) => b.addEventListener("click", () => setFormCurrency(b.textContent)));
   }
 
   // split editor
@@ -235,6 +338,10 @@
     const hint = $("split-hint");
     hint.textContent = "";
     document.querySelectorAll("#split-members .amt").forEach((el) => { el.textContent = ""; });
+    if (form.mode === "equal") {
+      const n = t.members.filter((m) => splitValues.equal?.[m] !== false).length;
+      hint.textContent = n === t.members.length ? `${n}명 모두 똑같이 나눕니다. 빠질 사람은 체크를 끄세요.` : `${t.members.length}명 중 ${n}명이 똑같이 나눕니다.`;
+    }
     if (!(amount > 0)) return;
     try {
       const split = currentSplit(amount);
@@ -316,6 +423,7 @@
           split: { type: "exact", weights: { [form.receiver]: String(amount) } } });
       } else {
         Object.assign(fields, { title: $("f-title").value, category: $("f-category").value, split: currentSplit(amount) });
+        if (form.payers.length > 1) fields.payers = payerAmounts();
         if ($("f-base").value.trim() && currency !== t.base_currency) fields.base_amount = $("f-base").value;
       }
       if (currency !== t.base_currency && !fields.base_amount) {
@@ -364,7 +472,8 @@
           const conv = convertedBase(t, e);
           const n = Object.keys(e.split.weights).length;
           const cls = ["entry", e.kind === "transfer" ? "transfer" : "", i === 0 ? "first" : "", i === es.length - 1 ? "last" : ""].join(" ");
-          const sub = e.kind === "transfer" ? "이미 주고받은 돈" : `${esc(e.category)} · ${esc(e.payer)} 결제 · ${n}명`;
+          const paidBy = e.payers ? Object.entries(e.payers).map(([p, v]) => `${esc(p)} ${fmt(Number(v), e.currency)}`).join(" + ") : esc(e.payer);
+          const sub = e.kind === "transfer" ? "이미 주고받은 돈" : `${esc(e.category)} · ${paidBy} 결제 · ${n}명 나눔`;
           const right = e.currency === t.base_currency && !e.base_amount ? "" :
             conv === null ? `<span class="pending">환율 대기</span>` :
             `≈ ${fmtMinor(conv, t.base_currency)}${e.base_amount ? " 실결제" : ""}`;
@@ -467,8 +576,8 @@
     $("t-start").value = t?.start || "";
     $("t-end").value = t?.end || "";
     $("t-members").value = t ? t.members.join(", ") : "";
-    $("t-base").value = t ? t.base_currency : "KRW";
-    $("t-base").disabled = !!(t && t.expenses.length);
+    setTripBase(t ? t.base_currency : "KRW");
+    $("t-base-btn").disabled = !!(t && t.expenses.length);
     $("trip-error").textContent = "";
   }
   $("trip-new").addEventListener("click", () => { store.current = null; fillTripForm(null); renderHeader(); });
@@ -489,7 +598,7 @@
         while (store.trips[id]) id = `${slug}-${n++}`;
         t = L.newTrip({ id, name, members, base });
       } else {
-        const used = new Set(t.expenses.flatMap((e) => [e.payer, ...Object.keys(e.split.weights)]));
+        const used = new Set(t.expenses.flatMap((e) => [e.payer, ...Object.keys(e.payers || {}), ...Object.keys(e.split.weights)]));
         const removed = t.members.filter((m) => !members.includes(m) && used.has(m));
         if (removed.length) throw new L.LedgerError(`기록에 쓰인 사람은 뺄 수 없습니다: ${removed.join(", ")}`);
         if (!members.length) throw new L.LedgerError("참여자를 한 명 이상 입력하세요.");

@@ -100,16 +100,32 @@
     return { type: mode, weights: out };
   }
 
+  /* 여러 명이 나눠 낸 경우: payers = {이름: 낸 금액}. 합계는 총액과 같아야 하고, 한 명이면 단일 결제로 저장한다. */
+  function cleanPayers(trip, payers, amount) {
+    const entries = Object.entries(payers || {}).map(([n, v]) => [n.trim(), num(v, `${n} 낸 금액`)]).filter(([, v]) => v !== 0);
+    if (!entries.length) throw new LedgerError("낸 사람을 고르세요.");
+    for (const [n, v] of entries) {
+      if (!trip.members.includes(n)) throw new LedgerError(`결제자가 참여자가 아닙니다: ${n}`);
+      if (v < 0) throw new LedgerError("낸 금액은 0보다 커야 합니다.");
+    }
+    const sum = entries.reduce((s, [, v]) => s + v, 0);
+    if (Math.abs(sum - amount) > 1e-6) throw new LedgerError(`낸 금액 합계(${sum})가 총액(${amount})과 다릅니다.`);
+    return entries.length > 1 ? Object.fromEntries(entries.map(([n, v]) => [n, String(v)])) : null;
+  }
+
   function addExpense(trip, f) {
-    if (!trip.members.includes(f.payer)) throw new LedgerError(`결제자가 참여자가 아닙니다: ${f.payer}`);
     const amount = num(f.amount);
     if (amount <= 0) throw new LedgerError("금액은 0보다 커야 합니다.");
+    const payers = f.payers ? cleanPayers(trip, f.payers, amount) : null;
+    if (f.payers) f.payer = Object.keys(f.payers).find((n) => Number(String(f.payers[n]).replace(/,/g, "")) > 0);
+    if (!trip.members.includes(f.payer)) throw new LedgerError(`결제자가 참여자가 아닙니다: ${f.payer}`);
     const e = {
       id: trip.next_id, kind: f.kind || "expense", date: f.date, title: (f.title || "").trim() || f.category || "기타",
       category: f.category || "기타", amount: String(amount), currency: currencyCode(f.currency), payer: f.payer,
       split: f.split, base_amount: f.base_amount ? String(num(f.base_amount, "실결제 금액")) : null,
       rate: f.rate ? String(num(f.rate, "환율")) : null, memo: f.memo || "",
     };
+    if (payers) e.payers = payers;
     if (f.rate_source) e.rate_source = f.rate_source;
     if (f.rate_pending) e.rate_pending = true;
     trip.next_id += 1;
@@ -138,7 +154,11 @@
       const weights = Object.fromEntries(Object.entries(e.split.weights).map(([n, w]) => [n, Number(w)]));
       const shares = allocate(total, weights);
       const transfer = e.kind === "transfer";
-      (transfer ? sent : paid)[e.payer] += total;
+      if (transfer) sent[e.payer] += total;
+      else if (e.payers) {
+        const paidShares = allocate(total, Object.fromEntries(Object.entries(e.payers).map(([n, v]) => [n, Number(v)])));
+        for (const [n, v] of Object.entries(paidShares)) paid[n] += v;
+      } else paid[e.payer] += total;
       for (const [n, s] of Object.entries(shares)) (transfer ? received : owed)[n] += s;
       if (!transfer) byCategory[e.category] = (byCategory[e.category] || 0) + total;
       lines.push({ id: e.id, total, shares, transfer });

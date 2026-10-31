@@ -1,5 +1,5 @@
 // 앱 화면은 오프라인에서도 열리게 캐시한다. 환율 API 요청은 캐시하지 않는다(앱이 직접 관리).
-const CACHE = "dogi-travel-shell-v1";
+const CACHE = "dogi-travel-shell-v2";
 const SHELL = ["./", "index.html", "styles.css", "ledger.js", "app.js", "manifest.webmanifest", "icon.svg", "icon-192.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
