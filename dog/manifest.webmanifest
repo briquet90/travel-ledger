@@ -1,6 +1,7 @@
 {
-  "name": "멍멍 여행가계부",
-  "short_name": "멍멍가계부",
+  "name": "댕가계부",
+  "short_name": "댕가계부",
+  "id": "./?app=daeng",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

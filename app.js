@@ -4,7 +4,8 @@
   const L = window.Ledger;
   const $ = (id) => document.getElementById(id);
   const BASE = new URL(".", document.currentScript.src);
-  const KEY = "dogi-travel-v1";
+  // 앱마다 기록 저장소를 따로 쓴다(댕가계부는 <html data-store-key="daeng-ledger-v1">).
+  const KEY = document.documentElement.dataset.storeKey || "dogi-travel-v1";
   const RATE_CACHE = "dogi-travel-rates-v1";
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

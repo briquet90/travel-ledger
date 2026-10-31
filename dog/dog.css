@@ -1,4 +1,4 @@
-/* 멍멍 여행가계부 — 기본 styles.css 위에 덮어쓰는 강아지(골든 리트리버) 테마.
+/* 댕가계부 — 기본 styles.css 위에 덮어쓰는 강아지(꽃 문 골든 리트리버) 테마.
    Layout: 같은 화면 구성. 하늘색 바탕 + 골든 털색 헤더 + 둥근 카드, 숫자는 둥근 Jua 서체. */
 :root {
   --bg: #e9f4fb; --surface: #ffffff; --ink: #3b2c24; --muted: #7a6a60; --line: #d8e5ee;
@@ -37,11 +37,13 @@ body {
 .mascot { width: 54px; height: 54px; flex: none; margin: -2px 0 -4px; padding: 3px; border-radius: 50%; background: #fff6e6; box-shadow: 0 2px 0 rgba(59, 44, 36, .18); }
 .mascot svg { width: 100%; height: 100%; display: block; }
 @media (prefers-reduced-motion: no-preference) {
-  /* 늘어진 귀가 가끔 살랑 */
-  .mascot .ear-l { transform-origin: 18px 16px; animation: flop-l 3.6s ease-in-out infinite; }
-  .mascot .ear-r { transform-origin: 46px 16px; animation: flop-r 3.6s ease-in-out .25s infinite; }
-  @keyframes flop-l { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(9deg); } 92% { transform: rotate(-3deg); } }
-  @keyframes flop-r { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(-9deg); } 92% { transform: rotate(3deg); } }
+  /* 늘어진 귀가 가끔 살랑, 꽃이 살짝 흔들림 */
+  .mascot .ear-l { transform-box: fill-box; transform-origin: 70% 5%; animation: flop-l 3.6s ease-in-out infinite; }
+  .mascot .ear-r { transform-box: fill-box; transform-origin: 30% 5%; animation: flop-r 3.6s ease-in-out .25s infinite; }
+  .mascot .flower { transform-box: fill-box; transform-origin: 20% 40%; animation: sway 4s ease-in-out infinite; }
+  @keyframes flop-l { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(8deg); } 92% { transform: rotate(-3deg); } }
+  @keyframes flop-r { 0%, 78%, 100% { transform: rotate(0); } 85% { transform: rotate(-8deg); } 92% { transform: rotate(3deg); } }
+  @keyframes sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-4deg); } }
 }
 .top select { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .01em; }
 .top select option { color: #3b2c24; }
@@ -110,9 +112,9 @@ td.num { font-family: var(--display); }
   background: var(--accent); -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
 }
 
-/* ---------- 움직이는 리트리버 ---------- */
+/* ---------- 움직이는 강아지: 꽃 물고 한 발 들고 아장아장 ---------- */
 .top { position: sticky; }
-.mascot { cursor: pointer; }
+.mascot { cursor: pointer; overflow: hidden; }
 .mascot.hop { animation: hop .7s ease-out; }
 @keyframes hop { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px) rotate(-6deg); } 55% { transform: translateY(0); } 75% { transform: translateY(-4px) rotate(4deg); } }
 .mascot-bubble, .walker .bubble {
@@ -123,33 +125,32 @@ td.num { font-family: var(--display); }
 .mascot-bubble::before { content: ""; position: absolute; left: -8px; top: 9px; border: 6px solid transparent; border-right-color: var(--accent); border-left: 0; }
 
 .walker {
-  position: fixed; left: 0; right: 0; height: 116px; z-index: 5; pointer-events: none; overflow: hidden;
-  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  position: fixed; left: 0; right: 0; height: 140px; z-index: 5; pointer-events: none; overflow: hidden;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
-.walker-move { position: absolute; left: 0; bottom: 0; width: 96px; transform: translateX(-120px); }
-.walker-dog { width: 96px; height: 64px; display: block; overflow: visible; }
-.walker .bubble { position: absolute; bottom: 62px; left: 40px; opacity: 0; }
-.walker .tongue { opacity: 0; }
+.walker-move { position: absolute; left: 0; bottom: 0; width: 72px; transform: translateX(-100px); }
+.walker-dog { width: 72px; height: 90px; display: block; overflow: visible; }
+.walker .bubble { position: absolute; bottom: 86px; left: 30px; opacity: 0; }
 @media (prefers-reduced-motion: no-preference) {
-  /* 평소: 34초마다 한 번 천천히 산책 (화면 밖에서 쉬다가 등장) */
+  /* 평소: 34초마다 한 번 천천히 지나감 (화면 밖에서 쉬다가 등장) */
   .walker-move { animation: stroll 34s linear 4s infinite; }
-  .walker .leg { transform-box: fill-box; transform-origin: 50% 8%; animation: step .52s ease-in-out infinite alternate; }
-  .walker .leg-b2, .walker .leg-f1 { animation-delay: -.26s; }
-  .walker .tail { transform-box: fill-box; transform-origin: 100% 100%; animation: wag .32s ease-in-out infinite alternate; }
-  .walker .head { transform-box: fill-box; transform-origin: 30% 80%; animation: bob .52s ease-in-out infinite alternate; }
-  .walker .ear { transform-box: fill-box; transform-origin: 60% 10%; animation: flap .52s ease-in-out infinite alternate; }
-  /* 저장했을 때: 말풍선 달고 신나게 달려 지나감 */
-  .walker.run .walker-move { animation: dash 3.4s cubic-bezier(.3, .1, .4, 1) 1; }
-  .walker.run .leg { animation-duration: .22s; }
-  .walker.run .tail { animation-duration: .14s; }
-  .walker.run .bubble { animation: pop 3.4s ease 1; }
-  .walker.run .tongue { opacity: 1; }
+  .walker .pup { transform-box: fill-box; transform-origin: 50% 100%; animation: toddle .5s ease-in-out infinite alternate; }
+  .walker .leg-r { transform-box: fill-box; transform-origin: 20% 0%; animation: paw .5s ease-in-out infinite alternate; }
+  .walker .leg-l { transform-box: fill-box; transform-origin: 50% 0%; animation: paw-l .5s ease-in-out infinite alternate; }
+  .walker .ear-l { transform-box: fill-box; transform-origin: 70% 5%; animation: flap-l .5s ease-in-out infinite alternate; }
+  .walker .ear-r { transform-box: fill-box; transform-origin: 30% 5%; animation: flap-r .5s ease-in-out infinite alternate; }
+  .walker .flower { transform-box: fill-box; transform-origin: 20% 40%; animation: sway .5s ease-in-out infinite alternate; }
+  /* 저장했을 때: 말풍선 달고 신나게 뛰어 지나감 */
+  .walker.run .walker-move { animation: dash 3.6s cubic-bezier(.3, .1, .4, 1) 1; }
+  .walker.run .pup, .walker.run .leg-r, .walker.run .leg-l, .walker.run .ear-l, .walker.run .ear-r { animation-duration: .2s; }
+  .walker.run .bubble { animation: pop 3.6s ease 1; }
 }
 @media (prefers-reduced-motion: reduce) { .walker { display: none; } }
-@keyframes stroll { 0% { transform: translateX(-120px); } 40% { transform: translateX(calc(100vw + 20px)); } 100% { transform: translateX(calc(100vw + 20px)); } }
-@keyframes dash { 0% { transform: translateX(-120px); } 100% { transform: translateX(calc(100vw + 20px)); } }
-@keyframes step { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
-@keyframes wag { from { transform: rotate(-14deg); } to { transform: rotate(18deg); } }
-@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-1.5px) rotate(-2deg); } }
-@keyframes flap { from { transform: rotate(-4deg); } to { transform: rotate(8deg); } }
+@keyframes stroll { 0% { transform: translateX(-100px); } 45% { transform: translateX(calc(100vw + 20px)); } 100% { transform: translateX(calc(100vw + 20px)); } }
+@keyframes dash { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 20px)); } }
+@keyframes toddle { from { transform: rotate(-4deg) translateY(0); } to { transform: rotate(4deg) translateY(-2px); } }
+@keyframes paw { from { transform: rotate(0) translateY(0); } to { transform: rotate(-14deg) translateY(-3px); } }
+@keyframes paw-l { from { transform: translateY(-2px); } to { transform: translateY(0); } }
+@keyframes flap-l { from { transform: rotate(-3deg); } to { transform: rotate(7deg); } }
+@keyframes flap-r { from { transform: rotate(3deg); } to { transform: rotate(-7deg); } }
 @keyframes pop { 0% { opacity: 0; transform: scale(.6); } 10%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
