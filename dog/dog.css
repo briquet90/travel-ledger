@@ -109,3 +109,47 @@ td.num { font-family: var(--display); }
   content: ""; display: block; width: 46px; height: 46px; margin: 0 auto 10px; opacity: .55;
   background: var(--accent); -webkit-mask: var(--paw) center / contain no-repeat; mask: var(--paw) center / contain no-repeat;
 }
+
+/* ---------- 움직이는 리트리버 ---------- */
+.top { position: sticky; }
+.mascot { cursor: pointer; }
+.mascot.hop { animation: hop .7s ease-out; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-10px) rotate(-6deg); } 55% { transform: translateY(0); } 75% { transform: translateY(-4px) rotate(4deg); } }
+.mascot-bubble, .walker .bubble {
+  background: var(--surface); color: var(--ink); font: 15px var(--display); white-space: nowrap;
+  padding: 6px 12px; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 3px 0 rgba(59, 44, 36, .12);
+}
+.mascot-bubble { position: absolute; left: 76px; top: calc(58px + env(safe-area-inset-top, 0px)); margin: 0; z-index: 8; }
+.mascot-bubble::before { content: ""; position: absolute; left: -8px; top: 9px; border: 6px solid transparent; border-right-color: var(--accent); border-left: 0; }
+
+.walker {
+  position: fixed; left: 0; right: 0; height: 116px; z-index: 5; pointer-events: none; overflow: hidden;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+}
+.walker-move { position: absolute; left: 0; bottom: 0; width: 96px; transform: translateX(-120px); }
+.walker-dog { width: 96px; height: 64px; display: block; overflow: visible; }
+.walker .bubble { position: absolute; bottom: 62px; left: 40px; opacity: 0; }
+.walker .tongue { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  /* 평소: 34초마다 한 번 천천히 산책 (화면 밖에서 쉬다가 등장) */
+  .walker-move { animation: stroll 34s linear 4s infinite; }
+  .walker .leg { transform-box: fill-box; transform-origin: 50% 8%; animation: step .52s ease-in-out infinite alternate; }
+  .walker .leg-b2, .walker .leg-f1 { animation-delay: -.26s; }
+  .walker .tail { transform-box: fill-box; transform-origin: 100% 100%; animation: wag .32s ease-in-out infinite alternate; }
+  .walker .head { transform-box: fill-box; transform-origin: 30% 80%; animation: bob .52s ease-in-out infinite alternate; }
+  .walker .ear { transform-box: fill-box; transform-origin: 60% 10%; animation: flap .52s ease-in-out infinite alternate; }
+  /* 저장했을 때: 말풍선 달고 신나게 달려 지나감 */
+  .walker.run .walker-move { animation: dash 3.4s cubic-bezier(.3, .1, .4, 1) 1; }
+  .walker.run .leg { animation-duration: .22s; }
+  .walker.run .tail { animation-duration: .14s; }
+  .walker.run .bubble { animation: pop 3.4s ease 1; }
+  .walker.run .tongue { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .walker { display: none; } }
+@keyframes stroll { 0% { transform: translateX(-120px); } 40% { transform: translateX(calc(100vw + 20px)); } 100% { transform: translateX(calc(100vw + 20px)); } }
+@keyframes dash { 0% { transform: translateX(-120px); } 100% { transform: translateX(calc(100vw + 20px)); } }
+@keyframes step { from { transform: rotate(16deg); } to { transform: rotate(-16deg); } }
+@keyframes wag { from { transform: rotate(-14deg); } to { transform: rotate(18deg); } }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-1.5px) rotate(-2deg); } }
+@keyframes flap { from { transform: rotate(-4deg); } to { transform: rotate(8deg); } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 10%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }

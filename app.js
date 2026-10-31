@@ -497,6 +497,7 @@
       L.addExpense(t, fields);
       t.last_currency = currency; t.last_payer = form.payer;
       saveTrip(t);
+      document.dispatchEvent(new CustomEvent("ledger:saved", { detail: { kind: fields.kind || "expense" } }));
       closeForm();
       renderLog();
       if (fields.rate_pending) fillPendingRates();
