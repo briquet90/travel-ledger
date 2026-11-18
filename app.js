@@ -1,4 +1,4 @@
-/* 여행정산가계부 beta(댕가계부와 공용) — 휴대폰 브라우저용. 데이터는 이 기기 localStorage, 환율은 온라인일 때 실시간 조회. */
+/* 여행정산가계부 beta·댕가계부 공용 — 휴대폰 브라우저용. 데이터는 이 기기 localStorage, 환율은 온라인일 때 실시간 조회. */
 (() => {
   "use strict";
   const L = window.Ledger;
@@ -52,6 +52,7 @@
       const old = store.trips[id];
       if (r.missing || r.error) {
         syncState[id] = r.missing ? "없는 링크" : "연결 오류";
+        if (r.missing && store.keyring) { Sync.keyringRemove(store.keyring.key, [id]); store.keyring.known = store.keyring.known.filter((x) => x !== id); }
         if (old && old.joining) {
           delete store.trips[id]; stopWatching(id);
           if (store.current === id) store.current = Object.keys(store.trips)[0] || null;
@@ -69,10 +70,97 @@
         : r.pending ? "보내는 중" : r.fromCache ? "연결 중" : "동기화됨";
       persist();
       renderAll();
+      if (old && old.joining) ensureKeyring();
     });
   }
   function stopWatching(id) { if (watching[id]) { watching[id](); delete watching[id]; } }
   const shareLink = (id) => `${location.origin}${location.pathname}#t=${id}`;
+  const placeholder = (id) => ({ id, shared: true, joining: true, name: "공유 가계부 불러오는 중…", members: [],
+    base_currency: "KRW", start: null, end: null, rates: {}, expenses: [] });
+
+  /* ---------------- 내 가계부 열쇠
+   * store.keyring = { key, known: [서버 열쇠 목록에서 확인한 여행 id] }.
+   * 다른 기기에서 지운 여행(known 에 있었는데 서버 목록에서 빠짐)은 이 기기에서도 뺀다.
+   * 이 기기에만 있는 공유 여행(known 에 없음)은 열쇠에 올린다. */
+  let keyringStop = null, keyringBusy = false, keyState = "";
+  const myShared = () => Object.values(store.trips).filter((t) => t.shared && !t.joining).map((t) => t.id);
+  const keyLink = (k) => `${location.origin}${location.pathname}#k=${k}`;
+
+  async function ensureKeyring() {
+    if (!Sync || keyringBusy) return;
+    if (!store.keyring) {
+      const ids = myShared();
+      if (!ids.length) { renderKeyring(); return; }
+      keyringBusy = true;
+      try {
+        const key = await Sync.newKeyring(ids);
+        store.keyring = { key, known: ids };
+        persist();
+      } catch (e) {
+        keyState = navigator.onLine ? "열쇠를 만들지 못했습니다. 잠시 뒤 다시 열어 주세요." : "인터넷에 연결되면 열쇠를 만듭니다.";
+        renderKeyring(); return;
+      } finally { keyringBusy = false; }
+    }
+    const known = new Set(store.keyring.known);
+    const add = myShared().filter((id) => !known.has(id));
+    if (add.length) { Sync.keyringAdd(store.keyring.key, add); store.keyring.known.push(...add); persist(); }
+    startKeyring();
+    renderKeyring();
+  }
+
+  function startKeyring() {
+    if (keyringStop || !store.keyring) return;
+    const key = store.keyring.key;
+    keyringStop = Sync.watchKeyring(key, (r) => {
+      if (!store.keyring || store.keyring.key !== key) return;
+      if (r.missing) { // 서버에 없는 열쇠(잘못 붙여넣음 등): 버리고 새로 만든다
+        keyringStop(); keyringStop = null; store.keyring = null; persist();
+        keyState = "열쇠를 찾지 못해 새 열쇠를 만들었습니다.";
+        ensureKeyring(); return;
+      }
+      if (r.error) { keyState = "열쇠 연결 오류"; renderKeyring(); return; }
+      const remote = new Set(r.trips);
+      const hadNone = !trip();
+      let changed = false;
+      for (const id of remote) if (!store.trips[id]) { store.trips[id] = placeholder(id); watchTrip(id); changed = true; }
+      if (!r.fromCache) {
+        for (const id of store.keyring.known) {
+          if (remote.has(id) || !store.trips[id] || !store.trips[id].shared) continue;
+          stopWatching(id); delete store.trips[id]; changed = true; // 다른 기기에서 목록에서 뺐다
+        }
+        store.keyring.known = [...remote];
+      } else store.keyring.known = [...new Set([...store.keyring.known, ...remote])];
+      if (!store.trips[store.current]) store.current = Object.keys(store.trips)[0] || null;
+      keyState = r.fromCache ? "연결 중" : "동기화됨";
+      persist();
+      if (changed && hadNone && trip()) show("log"); // 새 브라우저에서 열쇠로 불러온 경우 바로 기록 화면
+      if (changed) renderAll(); else renderKeyring();
+    });
+  }
+
+  function adoptKey(key) {
+    if (keyringStop) { keyringStop(); keyringStop = null; }
+    store.keyring = { key, known: [] }; // known 이 비었으니 이 기기의 공유 여행은 모두 새 열쇠에 합쳐진다
+    persist();
+    keyState = "불러오는 중…";
+    ensureKeyring();
+  }
+
+  function renderKeyring() {
+    const card = $("key-card");
+    card.hidden = !Sync;
+    if (card.hidden) return;
+    const k = store.keyring;
+    $("key-on").hidden = !k;
+    if (k) $("key-link").value = keyLink(k.key);
+    $("key-send").hidden = !navigator.share;
+    const local = Object.values(store.trips).filter((t) => !t.shared);
+    $("key-local").hidden = !local.length;
+    $("key-local").textContent = local.length
+      ? `이 기기에만 저장된 여행 ${local.length}개(${local.map((t) => t.name).join(", ")})는 열쇠에 들어가지 않아요. 브라우저를 바꾸면 사라지니 온라인에 올려 두세요.` : "";
+    $("key-upload").hidden = !local.length;
+    $("key-state").textContent = k ? `상태: ${keyState || "연결 중"}` : (keyState || "온라인 여행이 생기면 열쇠가 자동으로 만들어져요.");
+  }
   const trip = () => store.trips[store.current] || null;
 
   /* ---------------- formatting */
@@ -241,29 +329,74 @@
   /* ---------------- entry form */
   const form = { kind: "expense", payer: null, payers: [], multiPay: false, receiver: null, mode: "equal", rate: null, manual: false };
   let payValues = {};
+  let payTouched = new Set(); // 직접 고친 '낸 금액'. 나머지 사람은 남은 금액을 똑같이 나눠 자동으로 채운다.
+  let editing = null; // 수정 중인 기록 id
 
-  function openForm() {
+  function openForm(e) {
     const t = trip();
     if (!t) return;
+    const wasEditing = editing !== null;
+    editing = e ? e.id : null;
     form.kind = "expense"; form.mode = "equal"; form.manual = false; form.rate = null;
     form.payer = t.last_payer && t.members.includes(t.last_payer) ? t.last_payer : t.members[0];
     form.receiver = null;
     form.payers = [form.payer];
     form.multiPay = false;
     payValues = {};
+    payTouched = new Set();
+    if (e || wasEditing) splitValues = {}; // 새 기록은 지난번 나누기 설정을 이어 쓴다
     $("f-date").value = today();
     $("f-category").value = "식비";
     $("f-title").value = ""; $("f-amount").value = ""; $("f-rate").value = ""; $("f-base").value = ""; $("f-memo").value = "";
     $("f-currency").value = t.last_currency || t.base_currency;
+    if (e) fillFormFrom(t, e);
     $("f-currency-btn").textContent = $("f-currency").value;
     $("form-error").textContent = "";
     $("entry-form").hidden = false;
     $("open-form").hidden = true;
+    const submit = $("entry-form").querySelector("button[type=submit]");
+    submit.textContent = editing ? "수정 저장" : "저장";
+    $("entry-form").classList.toggle("editing", !!editing);
     renderForm();
-    $("f-amount").focus();
+    if (editing) $("entry-form").scrollIntoView({ behavior: "smooth", block: "start" });
+    else $("f-amount").focus();
   }
-  function closeForm() { $("entry-form").hidden = true; $("open-form").hidden = false; }
-  $("open-form").addEventListener("click", openForm);
+
+  // 저장된 기록을 입력 칸에 채운다(수정).
+  function fillFormFrom(t, e) {
+    const transfer = e.kind === "transfer";
+    form.kind = transfer ? "transfer" : "expense";
+    $("f-date").value = e.date || today();
+    $("f-amount").value = e.amount;
+    $("f-currency").value = e.currency;
+    $("f-memo").value = e.memo || "";
+    if (transfer) {
+      form.payer = e.payer; form.payers = [e.payer];
+      form.receiver = Object.keys(e.split.weights)[0] || null;
+    } else {
+      $("f-title").value = e.title || "";
+      if ([...$("f-category").options].some((o) => o.value === e.category)) $("f-category").value = e.category;
+      if (e.payers && Object.keys(e.payers).length > 1) {
+        form.multiPay = true;
+        form.payers = t.members.filter((m) => e.payers[m] !== undefined);
+        for (const m of form.payers) { payValues[m] = e.payers[m]; payTouched.add(m); }
+      } else form.payers = [e.payer];
+      form.payer = form.payers[0];
+      const type = e.split.type || "equal";
+      form.mode = ["equal", "shares", "exact"].includes(type) ? type : "shares";
+      if (form.mode === "equal") splitValues.equal = Object.fromEntries(t.members.map((m) => [m, e.split.weights[m] !== undefined]));
+      else splitValues[form.mode] = Object.fromEntries(t.members.map((m) => [m, e.split.weights[m] ?? ""]));
+      if (e.base_amount) $("f-base").value = e.base_amount;
+    }
+    if (e.rate && e.rate_source === "직접 입력") { form.manual = true; $("f-rate").value = e.rate; }
+  }
+
+  function closeForm() {
+    editing = null;
+    $("entry-form").hidden = true; $("open-form").hidden = false;
+    $("entry-form").classList.remove("editing");
+  }
+  $("open-form").addEventListener("click", () => openForm());
   $("multi-pay").addEventListener("click", () => {
     form.multiPay = !form.multiPay;
     if (!form.multiPay) form.payers = [form.payers[0]];
@@ -329,18 +462,48 @@
     const multi = form.kind === "expense" && form.payers.length > 1;
     box.hidden = !multi;
     if (!multi) { box.innerHTML = ""; $("payer-hint").textContent = ""; return; }
-    box.innerHTML = form.payers.map((m, i) => `<div class="split-row"><span class="name">${esc(m)} 낸 금액</span><input type="text" inputmode="decimal" id="pay-${i}" value="${esc(payValues[m] ?? "")}" placeholder="0" aria-label="${esc(m)} 낸 금액"></div>`).join("");
-    form.payers.forEach((m, i) => $("pay-" + i).addEventListener("input", (e) => { payValues[m] = e.target.value; renderPayerHint(); }));
+    const vals = autoPayValues();
+    box.innerHTML = form.payers.map((m, i) => `<div class="split-row"><span class="name">${esc(m)} 낸 금액</span><input type="text" inputmode="decimal" id="pay-${i}" value="${esc(vals[m] ?? "")}" placeholder="0" aria-label="${esc(m)} 낸 금액"></div>`).join("");
+    form.payers.forEach((m, i) => $("pay-" + i).addEventListener("input", (e) => {
+      payValues[m] = e.target.value;
+      if (e.target.value.trim()) payTouched.add(m); else payTouched.delete(m);
+      renderPayerHint();
+    }));
     renderPayerHint();
   }
 
+  // 직접 고치지 않은 사람은 (총액 − 직접 넣은 금액)을 똑같이 나눈 금액. 기본은 전원 동일 금액.
+  function autoPayValues() {
+    const out = { ...payValues };
+    const free = form.payers.filter((m) => !payTouched.has(m));
+    for (const m of free) out[m] = "";
+    if (!free.length) return out;
+    let amount = 0;
+    try { amount = L.num($("f-amount").value); } catch (e) { amount = 0; }
+    if (!(amount > 0)) return out;
+    const cur = /^[A-Z]{3}$/.test(($("f-currency").value || "").toUpperCase()) ? $("f-currency").value.toUpperCase() : "KRW";
+    const fixed = form.payers.filter((m) => payTouched.has(m)).reduce((s, m) => s + (Number(String(payValues[m] ?? "").replace(/,/g, "")) || 0), 0);
+    const rest = L.toMinor(amount - fixed, cur);
+    if (rest <= 0) return out;
+    const shares = L.allocate(rest, Object.fromEntries(free.map((m) => [m, 1])));
+    for (const m of free) out[m] = String(L.fromMinor(shares[m], cur));
+    return out;
+  }
+  function refreshAutoPay() {
+    if (form.payers.length < 2 || $("payer-amounts").hidden) return;
+    const vals = autoPayValues();
+    form.payers.forEach((m, i) => { const el = $("pay-" + i); if (el && !payTouched.has(m) && el !== document.activeElement) el.value = vals[m] ?? ""; });
+  }
+
   function payerAmounts() {
-    return Object.fromEntries(form.payers.map((m) => [m, String(payValues[m] ?? "").replace(/,/g, "").trim() || "0"]));
+    const vals = autoPayValues();
+    return Object.fromEntries(form.payers.map((m) => [m, String(vals[m] ?? "").replace(/,/g, "").trim() || "0"]));
   }
 
   function renderPayerHint() {
     const hint = $("payer-hint");
     if (form.payers.length < 2) { hint.textContent = ""; return; }
+    refreshAutoPay();
     let amount = 0;
     try { amount = L.num($("f-amount").value); } catch (e) { amount = 0; }
     const cur = ($("f-currency").value || "KRW").toUpperCase();
@@ -485,6 +648,8 @@
         if (form.payers.length > 1) fields.payers = payerAmounts();
         if ($("f-base").value.trim() && currency !== t.base_currency) fields.base_amount = $("f-base").value;
       }
+      const old = editing !== null ? t.expenses.find((x) => String(x.id) === String(editing)) : null;
+      if (editing !== null && !old) throw new L.LedgerError("수정하던 기록이 사라졌습니다(다른 사람이 지웠을 수 있어요).");
       if (currency !== t.base_currency && !fields.base_amount) {
         if (form.manual) {
           const r = L.num($("f-rate").value, "환율");
@@ -492,10 +657,22 @@
           fields.rate = r; fields.rate_source = "직접 입력";
         } else if (form.rate && form.rate.cur === currency) {
           fields.rate = form.rate.rate; fields.rate_source = `${form.rate.source} ${form.rate.asOf}`;
+        } else if (old && old.rate && old.currency === currency && old.date === date) {
+          fields.rate = old.rate; if (old.rate_source) fields.rate_source = old.rate_source; // 오프라인 수정: 원래 환율 유지
         } else fields.rate_pending = true;
       }
-      if (t.shared) fields.id = L.newId();
-      L.addExpense(t, fields);
+      if (old) {
+        // 같은 id로 바꿔 끼운다 → 공유 여행은 그 문서 하나만 갱신된다.
+        const idx = t.expenses.indexOf(old);
+        const rest = t.expenses.filter((x) => x !== old);
+        const tmp = { ...t, expenses: [] };
+        const e = L.addExpense(tmp, { ...fields, id: old.id });
+        rest.splice(idx, 0, e);
+        t.expenses = rest;
+      } else {
+        if (t.shared) fields.id = L.newId();
+        L.addExpense(t, fields);
+      }
       t.last_currency = currency; t.last_payer = form.payer;
       saveTrip(t);
       document.dispatchEvent(new CustomEvent("ledger:saved", { detail: { kind: fields.kind || "expense" } }));
@@ -540,12 +717,19 @@
             `≈ ${fmtMinor(conv, t.base_currency)}${e.base_amount ? " 실결제" : ""}`;
           return `<li class="${cls}" data-id="${e.id}"><span class="t">${esc(e.title)}</span><span class="a">${fmt(Number(e.amount), e.currency)} ${curLabel(e.currency)}</span>` +
             `<span class="s">${sub}${e.memo ? " · " + esc(e.memo) : ""}</span><span class="c">${right}</span>` +
-            `<button type="button" class="link del" data-del="${e.id}">삭제</button></li>`;
+            `<span class="acts"><button type="button" class="link edit" data-edit="${esc(e.id)}">수정</button><button type="button" class="link del" data-del="${esc(e.id)}">삭제</button></span></li>`;
         }).join("");
     }).join("");
   }
 
   $("entries").addEventListener("click", (ev) => {
+    const ed = ev.target.closest("[data-edit]");
+    if (ed) {
+      const t = trip();
+      const e = t && t.expenses.find((x) => String(x.id) === ed.dataset.edit);
+      if (e) openForm(e);
+      return;
+    }
     const btn = ev.target.closest("[data-del]");
     if (!btn) return;
     if (btn.dataset.armed !== "1") { btn.dataset.armed = "1"; btn.textContent = "정말 삭제"; btn.classList.add("danger-text"); return; }
@@ -669,37 +853,90 @@
       }
       t.start = $("t-start").value || null;
       t.end = $("t-end").value || null;
-      const makeShared = !trip() && Sync && $("t-shared").checked;
+      const makeShared = !trip() && $("t-shared").checked;
       saveTrip(t);
       splitValues = {};
       renderAll();
-      if (makeShared) { show("trip"); shareCurrent(); return; }
+      // 온라인 저장은 뒤에서 한다(공유 기능이 아직 불러지는 중이면 기다렸다가). 화면은 바로 기록으로.
+      // 오프라인이거나 실패하면 이 기기 여행으로 남고, 여행 탭에서 다시 올릴 수 있다.
+      if (makeShared) syncReady.then((ok) => { if (ok && store.trips[t.id] && !store.trips[t.id].shared) { store.current = t.id; shareCurrent(); } });
       show("log");
       refreshTripRates(false);
     } catch (e) { err.textContent = e.message; }
   });
 
+  // 개인 여행을 서버에 올려 공유 여행으로 바꾼다(id 가 바뀐다).
+  async function shareTrip(t) {
+    const shared = await Sync.share(t, L.newId);
+    shared.last_currency = t.last_currency; shared.last_payer = t.last_payer;
+    const wasCurrent = store.current === t.id;
+    delete store.trips[t.id];
+    store.trips[shared.id] = shared;
+    if (wasCurrent) store.current = shared.id;
+    origins.set(shared, clone(shared));
+    persist();
+    watchTrip(shared.id);
+    return shared;
+  }
+
+  // 붙여 넣은 열쇠 링크(#k=…)·초대 링크(#t=…)로 여행을 불러온다.
+  function openLinkText(text) {
+    const v = String(text || "").trim();
+    const k = (v.match(/#k=([A-Za-z0-9]{22})/) || [])[1] || (/^[A-Za-z0-9]{22}$/.test(v) ? v : null);
+    const id = (v.match(/#t=([A-Za-z0-9]{22})/) || [])[1];
+    if (!Sync) return { ok: false, msg: "공유 기능에 연결되지 않았습니다. 인터넷 연결을 확인하세요." };
+    if (k) { adoptKey(k); return { ok: true, msg: "열쇠로 내 여행을 불러오는 중이에요." }; }
+    if (id) {
+      if (!store.trips[id]) store.trips[id] = placeholder(id);
+      store.current = id; persist(); watchTrip(id); renderAll(); show("log");
+      return { ok: true, msg: "초대받은 여행을 불러오는 중이에요." };
+    }
+    return { ok: false, msg: "열쇠 링크(#k=…)나 초대 링크(#t=…)를 붙여 넣어 주세요." };
+  }
+
   async function shareCurrent() {
     const t = trip();
     if (!t || t.shared || !Sync) return;
     const msg = $("share-msg");
-    msg.textContent = "초대 링크를 만드는 중…";
+    msg.textContent = "온라인에 올리는 중…";
     $("share-make").disabled = true;
     try {
-      const shared = await Sync.share(t, L.newId);
-      shared.last_currency = t.last_currency; shared.last_payer = t.last_payer;
-      delete store.trips[t.id];
-      store.trips[shared.id] = shared;
-      store.current = shared.id;
-      origins.set(shared, clone(shared));
-      persist();
-      watchTrip(shared.id);
-      msg.textContent = "초대 링크를 만들었습니다. 같이 가는 사람에게 보내세요.";
+      await shareTrip(t);
+      msg.textContent = "온라인에 저장했습니다. 같이 쓰려면 초대 링크를 보내세요.";
+      ensureKeyring();
     } catch (e) {
       msg.textContent = navigator.onLine ? "링크를 만들지 못했습니다. 잠시 뒤 다시 시도하세요." : "인터넷에 연결된 상태에서 만들어 주세요.";
     } finally { $("share-make").disabled = false; renderAll(); }
   }
   $("share-make").addEventListener("click", shareCurrent);
+
+  {
+    const keyMsg = (s) => { $("key-msg").textContent = s; };
+    $("key-copy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText($("key-link").value); keyMsg("열쇠 링크를 복사했어요. 나만 볼 수 있는 곳(나에게 보내기 메모 등)에 보관하세요."); }
+      catch (e) { $("key-link").select(); keyMsg("링크를 길게 눌러 복사하세요."); }
+    });
+    $("key-send").addEventListener("click", async () => {
+      try { await navigator.share({ title: "가계부 열쇠", text: "내 가계부 열쇠 링크 (나만 보관)", url: $("key-link").value }); }
+      catch (e) { /* 취소 */ }
+    });
+    $("key-upload").addEventListener("click", async () => {
+      if (!navigator.onLine) { keyMsg("인터넷에 연결된 상태에서 올려 주세요."); return; }
+      $("key-upload").disabled = true;
+      const local = Object.values(store.trips).filter((t) => !t.shared);
+      let n = 0;
+      for (const t of local) { try { await shareTrip(t); n++; } catch (e) { /* 다음 */ } }
+      $("key-upload").disabled = false;
+      keyMsg(n === local.length ? `${n}개 여행을 온라인에 올렸어요.` : `${local.length}개 중 ${n}개만 올렸어요. 잠시 뒤 다시 눌러 주세요.`);
+      await ensureKeyring();
+      renderAll();
+    });
+    $("key-open").addEventListener("click", () => {
+      const r = openLinkText($("key-input").value);
+      if (r.ok) $("key-input").value = "";
+      keyMsg(r.msg);
+    });
+  }
   $("share-copy").addEventListener("click", async () => {
     const link = $("share-link").value;
     try { await navigator.clipboard.writeText(link); $("share-msg").textContent = "링크를 복사했습니다."; }
@@ -724,12 +961,14 @@
       $("share-send").hidden = !navigator.share;
     }
     $("share-me-warn").hidden = !t.members.includes("나");
-    $("delete-trip").textContent = t.shared ? "이 기기에서 이 여행 빼기 (공유 기록은 남음)" : "이 여행 삭제";
+    $("delete-trip").textContent = !t.shared ? "이 여행 삭제"
+      : store.keyring ? "내 목록에서 이 여행 빼기 (내 모든 기기에서 빠지고, 공유 기록은 남음)" : "이 기기에서 이 여행 빼기 (공유 기록은 남음)";
   }
 
   function renderTrip() {
     const t = trip();
     renderShare();
+    renderKeyring();
     $("t-shared-row").hidden = !!t || !Sync;
     if (view === "trip" && document.activeElement?.closest?.("#trip-form") == null) fillTripForm(t);
     const body = $("rates-body");
@@ -791,6 +1030,10 @@
   $("delete-yes").addEventListener("click", () => {
     const t = trip(); if (!t) return;
     stopWatching(t.id);
+    if (t.shared && store.keyring && Sync) {
+      Sync.keyringRemove(store.keyring.key, [t.id]);
+      store.keyring.known = store.keyring.known.filter((x) => x !== t.id);
+    }
     delete store.trips[t.id];
     store.current = Object.keys(store.trips)[0] || null;
     persist();
@@ -806,24 +1049,70 @@
     if (view === "settle") renderSettle();
   }
 
+
+  /* ---------------- 아이폰 안내
+   * 아이폰은 '홈 화면에 추가'한 앱과 사파리의 저장 공간이 따로다. 링크로 들어온 사파리에서는 링크를 복사해 두라고 안내하고,
+   * 홈 화면 앱을 처음(여행 없이) 열면 복사한 링크를 붙여 넣는 버튼을 보여 준다. */
+  function iosTips() {
+    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (!ios) return;
+    const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const banner = (html, btnText, onClick) => {
+      const box = document.createElement("div");
+      box.className = "banner ios-tip";
+      box.innerHTML = `<span>${html}</span><span class="ios-acts"><button type="button" class="link">${btnText}</button><button type="button" class="link" data-x>닫기</button></span>`;
+      const [btn, close] = box.querySelectorAll("button");
+      btn.addEventListener("click", () => onClick(box));
+      close.addEventListener("click", () => box.remove());
+      $("view-log").prepend(box);
+      return box;
+    };
+    if (!standalone && (join || keyParam)) {
+      banner("아이폰: 공유 버튼 → <b>홈 화면에 추가</b>하면 앱처럼 쓸 수 있어요. 추가한 앱은 사파리와 기록이 따로라서, 먼저 <b>링크 복사</b>를 누르고 앱을 처음 열 때 <b>붙여넣기</b>를 누르세요.",
+        "링크 복사", async (box) => {
+          const link = store.keyring ? keyLink(store.keyring.key) : join ? shareLink(join) : keyLink(keyParam);
+          try { await navigator.clipboard.writeText(link); box.querySelector("span").textContent = "복사했어요. 이제 공유 버튼 → 홈 화면에 추가 → 추가한 앱을 열고 '붙여넣기'를 누르세요."; }
+          catch (e) { box.querySelector("span").textContent = link; }
+        });
+    }
+    if (standalone && !Object.keys(store.trips).length) {
+      banner("사파리에서 보던 가계부가 있나요? 복사해 둔 <b>초대 링크나 열쇠 링크</b>를 붙여 넣으면 그대로 이어져요.",
+        "붙여넣기", async (box) => {
+          let text = "";
+          try { text = await navigator.clipboard.readText(); } catch (e) { /* 권한 거절 */ }
+          const r = openLinkText(text);
+          if (r.ok) box.remove();
+          else { box.querySelector("span").textContent = text ? r.msg : "붙여넣기가 막혔어요. 여행 탭 '불러오기' 칸에 링크를 길게 눌러 붙여 넣으세요."; show("trip"); }
+        });
+      show("log");
+    }
+  }
+
   /* ---------------- boot */
   if (!store.current || !store.trips[store.current]) store.current = Object.keys(store.trips)[0] || null;
+  // 카카오톡 안 브라우저로 초대·열쇠 링크를 열면 기본 브라우저(아이폰은 사파리)로 넘긴다.
+  // 카톡 안 브라우저는 저장 공간이 따로라 나중에 여행을 찾기 어렵다.
+  if (/KAKAOTALK/i.test(navigator.userAgent) && /^#[tk]=[A-Za-z0-9]{22}$/.test(location.hash)) {
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+  }
   const join = (location.hash.match(/^#t=([A-Za-z0-9]{22})$/) || [])[1];
   if (join) {
     history.replaceState(null, "", location.pathname + location.search);
-    if (!store.trips[join]) {
-      store.trips[join] = { id: join, shared: true, joining: true, name: "공유 가계부 불러오는 중…", members: [],
-        base_currency: "KRW", start: null, end: null, rates: {}, expenses: [] };
-    }
+    if (!store.trips[join]) store.trips[join] = placeholder(join);
     store.current = join;
   }
+  const keyParam = (location.hash.match(/^#k=([A-Za-z0-9]{22})$/) || [])[1];
+  if (keyParam) history.replaceState(null, "", location.pathname + location.search);
   renderAll();
   if (!trip()) { show("trip"); fillTripForm(null); }
   else { fillPendingRates(); refreshTripRates(false); }
   syncReady.then(() => {
     for (const [id, t] of Object.entries(store.trips)) if (t.shared) watchTrip(id);
     if (join && !Sync) flash("공유 기능이 아직 설정되지 않아 초대 링크를 열 수 없습니다.");
+    if (Sync && keyParam && store.keyring?.key !== keyParam) adoptKey(keyParam);
+    else ensureKeyring();
     renderAll();
+    iosTips();
   });
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register(new URL("sw.js", BASE), { scope: BASE.pathname }).catch(() => {});

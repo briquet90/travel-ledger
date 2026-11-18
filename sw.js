@@ -1,6 +1,6 @@
 // 앱 화면은 오프라인에서도 열리게 캐시한다. 환율 API는 캐시하지 않는다(앱이 직접 관리).
 // 공유 가계부용 Firebase 라이브러리(gstatic, 버전 고정)는 처음 받은 뒤 캐시해서 오프라인에서도 열리게 한다.
-const CACHE = "dogi-travel-shell-v4";
+const CACHE = "dogi-travel-shell-v5";
 const SHELL = ["./", "index.html", "styles.css", "ledger.js", "app.js", "sync.js", "firebase-config.js",
   "manifest.webmanifest", "icon.svg", "icon-192.png",
   "dog/", "dog/index.html", "dog/dog.css", "dog/dog.js", "dog/manifest.webmanifest", "dog/icon-192.png"];

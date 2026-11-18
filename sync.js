@@ -6,7 +6,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator,
-  doc, collection, onSnapshot, writeBatch, serverTimestamp,
+  doc, collection, onSnapshot, writeBatch, serverTimestamp, setDoc, arrayUnion, arrayRemove,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { FIREBASE_CONFIG } from "./firebase-config.js";
 
@@ -108,4 +108,32 @@ export function push(base, trip) {
   if (Object.keys(changed).length) { batch.set(tripRef, { ...changed, updated_at: serverTimestamp() }, { merge: true }); n++; }
   if (n) batch.commit().catch((err) => console.warn("sync", err.code));
   return n;
+}
+
+/* ---- 내 가계부 열쇠 (댕가계부) ----
+ * keyrings/{22자 열쇠} = { trips: [내 여행 id…] }. 열쇠 링크를 다른 브라우저·앱·폰(아이폰 포함)에서 열면
+ * 같은 여행 목록이 나타난다. 브라우저 저장소가 지워져도(사파리 7일 정리 등) 열쇠만 있으면 되살아난다.
+ * 추가·삭제는 arrayUnion/arrayRemove 라 여러 기기가 동시에 바꿔도 서로 덮어쓰지 않는다. */
+export async function newKeyring(ids) {
+  const key = newShareId();
+  const done = setDoc(doc(db, "keyrings", key), { trips: ids, updated_at: serverTimestamp() });
+  await Promise.race([done, new Promise((r) => setTimeout(r, 4000))]);
+  return key;
+}
+export function keyringAdd(key, ids) {
+  if (!ids.length) return;
+  setDoc(doc(db, "keyrings", key), { trips: arrayUnion(...ids), updated_at: serverTimestamp() }, { merge: true })
+    .catch((err) => console.warn("keyring", err.code));
+}
+export function keyringRemove(key, ids) {
+  if (!ids.length) return;
+  setDoc(doc(db, "keyrings", key), { trips: arrayRemove(...ids), updated_at: serverTimestamp() }, { merge: true })
+    .catch((err) => console.warn("keyring", err.code));
+}
+/** cb({trips, fromCache}) | cb({missing:true}) | cb({error}) */
+export function watchKeyring(key, cb) {
+  return onSnapshot(doc(db, "keyrings", key), { includeMetadataChanges: true }, (snap) => {
+    if (!snap.exists()) { if (!snap.metadata.fromCache) cb({ missing: true }); return; }
+    cb({ trips: (snap.data().trips || []).filter(validShareId), fromCache: snap.metadata.fromCache });
+  }, (err) => cb({ error: err.code || "error" }));
 }

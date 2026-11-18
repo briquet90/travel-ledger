@@ -98,10 +98,10 @@
     // 지금 화면에 맞는 도움말
     const visible = (sel) => { const el = document.querySelector(sel); return el && !el.hidden && el.offsetParent !== null; };
     if (visible("#pending-banner")) return "환율이 빈 기록이 있어요. '환율 채우기'를 눌러 주세요!";
-    if (visible("#entry-form")) return pick(["외화는 결제일 환율로 자동 계산해요", "둘이 나눠 냈으면 '여러 명이 나눠 냈어요'!", "빠질 사람은 체크를 끄면 돼요"]);
+    if (visible("#entry-form")) return pick(["외화는 결제일 환율로 자동 계산해요", "나눠 냈으면 금액이 똑같이 채워져요", "빠질 사람은 체크를 끄면 돼요"]);
     if (visible("#view-settle")) return pick(["'복사'를 눌러 송금 내역을 보내요", "통화를 바꿔서 정산해 볼 수도 있어요"]);
-    if (visible("#view-trip")) return pick(["초대 링크로 친구랑 같이 적어요", "여행 끝나면 파일로 내보내 두세요"]);
-    return pick(["+ 기록을 누르면 지출을 적어요", "산책 가요?", "간식도 식비예요!", "환율은 제가 찾아올게요"]);
+    if (visible("#view-trip")) return pick(["초대 링크로 친구랑 같이 적어요", "열쇠 링크는 나만 보관해요!"]);
+    return pick(["+ 기록을 누르면 지출을 적어요", "기록의 '수정'으로 고칠 수 있어요", "산책 가요?", "간식도 식비예요!", "환율은 제가 찾아올게요"]);
   }
 
   /* ---------- 반응 ---------- */
@@ -134,8 +134,10 @@
     opts.push({ label: "지출 기록하기", run: () => { tab("log"); setTimeout(() => { const b = document.querySelector("#open-form"); if (b && !b.hidden) b.click(); }, 50); } });
     opts.push({ label: "누가 누구에게 보낼지 보기", run: () => tab("settle") });
     opts.push({ label: "친구 초대해서 같이 쓰기", run: () => { tab("trip"); setTimeout(() => { const c = document.querySelector("#share-card"); c && !c.hidden && c.scrollIntoView({ behavior: "smooth", block: "center" }); }, 80); } });
+    opts.push({ label: "다른 폰·브라우저에서도 보기", run: () => { tab("trip"); setTimeout(() => { const c = document.querySelector("#key-card"); c && !c.hidden && c.scrollIntoView({ behavior: "smooth", block: "center" }); }, 80); } });
+    opts.push({ label: "기록을 고치고 싶어요", keep: true, run: () => answer("기록 목록에서 고칠 항목 아래 '수정'을 누르면 입력 칸에 그대로 채워져요. 고친 뒤 '수정 저장'을 누르면 돼요.") });
     opts.push({ label: "환율은 어떻게 계산해요?", keep: true, run: () => answer("외화 지출은 결제한 날의 기준환율을 자동으로 가져와요. 카드에서 원화로 결제됐다면 '실제 결제된 금액'을 넣어 주세요. 그 금액이 그대로 쓰여요.") });
-    opts.push({ label: "둘이 나눠 냈을 땐요?", keep: true, run: () => answer("기록할 때 '여러 명이 나눠 냈어요'를 누르고 각자 낸 금액을 적으면 돼요. 일부만 나눌 땐 '똑같이'에서 빠질 사람 체크를 꺼요.") });
+    opts.push({ label: "둘이 나눠 냈을 땐요?", keep: true, run: () => answer("'여러 명이 나눠 냈어요'를 누르고 낸 사람을 고르면 금액이 똑같이 나눠 채워져요. 한 사람 금액을 고치면 나머지 사람이 남은 금액을 똑같이 나눠요. 일부만 나눌 땐 '똑같이'에서 빠질 사람 체크를 꺼요.") });
     opts.push({ label: "강아지 숨기기", run: () => hideDog() });
     return opts;
   }

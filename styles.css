@@ -140,6 +140,10 @@ legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 6px; }
 .entry .pending { color: var(--warn-ink); background: var(--warn-bg); border-radius: 4px; padding: 0 4px; }
 .entry.transfer .t { color: var(--accent); }
 .entry .del { grid-column: 1 / -1; justify-self: end; font-size: 12px; }
+.entry .acts { grid-column: 1 / -1; justify-self: end; display: flex; gap: 18px; }
+.entry .acts .link { font-size: 13px; padding: 4px 2px; }
+#entry-form.editing { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft, transparent); }
+#entry-form.editing::before { content: "기록 수정 중"; display: block; margin: -2px 0 8px; font-weight: 700; color: var(--warn-ink); }
 .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 
 .transfers { display: flex; flex-direction: column; gap: 8px; }
@@ -182,3 +186,6 @@ code { font-family: var(--mono); font-size: 12px; }
 .warn { color: var(--warn-ink); background: var(--warn-bg); padding: 8px 10px; border-radius: 8px; }
 #share-link { font: 13px var(--mono); }
 .small-link { align-self: flex-start; font-size: 13px; }
+
+.ios-tip { display: flex; flex-direction: column; gap: 6px; align-items: stretch; margin-bottom: 10px; }
+.ios-tip .ios-acts { display: flex; gap: 18px; justify-content: flex-end; }
